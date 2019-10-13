@@ -1,13 +1,13 @@
 ---
 title: "K2路由器Pandavan配置frp实现内网穿透"
 date: 2018-08-23T21:42:00+08:00
-
 ---
 
-    树梅派跑起来后，肯定是能够随时随地访问才够方便，但是家中的宽带没有固定ip,而且pi又躲在路由器后面，因此想要访问的话必须曲线一下，有好多方法可以实现，手中刚好有闲鱼淘的k2路由器，入手后已经刷好了Padavan,
- 刷完之后很强大，就用它来搞定了。Padavan固件版本为3.4.3.9-099_7-02-21，我们需要的内网穿透工具frp已经在Padavan中内置了，相比与花生壳，使用frp我们需要自己搭建服务器，所以需要一台有固定ip的vps。内置的frp版本太低，frpc和frps版本差太多是跑不起来的。所以后面我们需要把它替换掉，ok,开干！
+树梅派跑起来后，肯定是能够随时随地访问才够方便，但是家中的宽带没有固定ip,而且pi又躲在路由器后面，因此想要访问的话必须曲线一下，有好多方法可以实现，手中刚好有闲鱼淘的k2路由器，入手后已经刷好了Padavan,
+刷完之后很强大，就用它来搞定了。Padavan固件版本为3.4.3.9-099_7-02-21，我们需要的内网穿透工具frp已经在Padavan中内置了，相比与花生壳，使用frp我们需要自己搭建服务器，所以需要一台有固定ip的vps。内置的frp版本太低，frpc和frps版本差太多是跑不起来的。所以后面我们需要把它替换掉，ok,开干！
 ### 1.配置服务器端
 使用一键安装脚本安装，脚本默认安装最新版的frp：
+
 ```bash   
 wget --no-check-certificate https://raw.githubusercontent.com/clangcn/onekey-install-shell/master/frps/install-frps.sh -O ./install-frps.sh
 chmod 700 ./install-frps.sh
