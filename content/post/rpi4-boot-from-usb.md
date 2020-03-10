@@ -11,7 +11,7 @@ categories: ["raspberrypi"]
 
 ### 1.硬盘分区格式化
 将有系统的SD卡和要用到的硬盘都插到树莓派上。我的是一枚4T WD紫盘。  
-由于MBR不支持超过2T的硬盘，使用GPT分区
+由于MBR不支持超过2T的硬盘，使用GPT分区, /dev/sda为此硬盘
 ```bash
     sudo parted
 
@@ -73,7 +73,6 @@ Device         Start        End    Sectors   Size Type
 
 ### 2.系统迁移
 挂载硬盘：
-
 ```bash
     sudo mkdir /media/sys
     sudo mount /dev/sda1 /media/sys
@@ -126,6 +125,11 @@ UUID=fdddd773-1ce7-430f-b4ff-3df3ac26494a /media/disk ext4 defaults,auto,users,r
     tmpfs           348M     0  348M   0% /run/user/1000
 ```
 可见系统目录 / 已经是366G了，/dev/sda2也自动挂载到/media/disk了。
+
+若/media/disk目录无权限,则
+```bash
+sudo chown pi:pi /media/disk
+```
 
 ### 3.参考
 https://www.youtube.com/watch?v=FM9wuFLufyA  
