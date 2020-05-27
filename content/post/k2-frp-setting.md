@@ -10,9 +10,9 @@ tags: ["raspberrypi", "frp", "路由器"]
 使用一键安装脚本安装，脚本默认安装最新版的frp：
 
 ```bash   
-wget --no-check-certificate https://raw.githubusercontent.com/clangcn/onekey-install-shell/master/frps/install-frps.sh -O ./install-frps.sh
-chmod 700 ./install-frps.sh
-./install-frps.sh install
+$wget --no-check-certificate https://raw.githubusercontent.com/clangcn/onekey-install-shell/master/frps/install-frps.sh -O ./install-frps.sh
+$chmod 700 ./install-frps.sh
+$./install-frps.sh install
 ```   
 安装过程中会每步询问，一般一路敲确定就行，想要配置也可以注意下。
 下面是我几个主要配置，具体的可以去frp的[官方文档](https://github.com/fatedier/frp/blob/master/README.md)查看
@@ -32,37 +32,37 @@ Padavan中frpc的设置在扩展功能->花生壳内网版->frp内网穿透中�
 
 ```bash   
 
-    #!/bin/sh
-    export PATH='/opt/usr/sbin:/opt/usr/bin:/opt/sbin:/opt/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin'
-    export LD_LIBRARY_PATH=/lib:/opt/lib
-    killall frpc frps
-    mkdir -p /tmp/frp
-    #删除低版本的frpc
-    rm /opt/bin/frpc
-    #下载替换
-    wget -P /opt/bin/ https://code.aliyun.com/xistor/frpc-for-download/raw/master/frpc && chmod 777 /opt/bin/frpc
-    chmod 777 /opt/bin/frpc
+#!/bin/sh
+export PATH='/opt/usr/sbin:/opt/usr/bin:/opt/sbin:/opt/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin'
+export LD_LIBRARY_PATH=/lib:/opt/lib
+killall frpc frps
+mkdir -p /tmp/frp
+#删除低版本的frpc
+rm /opt/bin/frpc
+#下载替换
+wget -P /opt/bin/ https://code.aliyun.com/xistor/frpc-for-download/raw/master/frpc && chmod 777 /opt/bin/frpc
+chmod 777 /opt/bin/frpc
 
-    #启动frp功能后会运行以下脚本
-    #使用方法请查看论坛教程地址: http://www.right.com.cn/forum/thread-191839-1-1.html
-    #frp项目地址教程: https://github.com/fatedier/frp/blob/master/README_zh.md
-    #请自行修改 auth_token 用于对客户端连接进行身份验证
-    # IP查询： http://119.29.29.29/d?dn=github.com
+#启动frp功能后会运行以下脚本
+#使用方法请查看论坛教程地址: http://www.right.com.cn/forum/thread-191839-1-1.html
+#frp项目地址教程: https://github.com/fatedier/frp/blob/master/README_zh.md
+#请自行修改 auth_token 用于对客户端连接进行身份验证
+# IP查询： http://119.29.29.29/d?dn=github.com
 
-    #客户端配置：
-    cat > "/tmp/frp/myfrpc.ini" <<-\EOF
-    [common]
-    server_addr =  #你服务器的ip
-    server_port = 7000
-    token = ******  #和你服务器上配置的一致
-    #authentication_timeout=0
-    [ssh]
-    type = tcp
-    local_ip = 192.168.1.32 #内网中树梅派的地址
-    local_port = 22
-    remote_port = 6666      #映射到外网的端口
+#客户端配置：
+cat > "/tmp/frp/myfrpc.ini" <<-\EOF
+[common]
+server_addr =  #你服务器的ip
+server_port = 7000
+token = ******  #和你服务器上配置的一致
+#authentication_timeout=0
+[ssh]
+type = tcp
+local_ip = 192.168.1.32 #内网中树梅派的地址
+local_port = 22
+remote_port = 6666      #映射到外网的端口
 
-    EOF
+EOF
 ```
 
 ok,然后我们就可以用ssh -oPort=6666 pi@x.x.x.x 在外网访问派了！
