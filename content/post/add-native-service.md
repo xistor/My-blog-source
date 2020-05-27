@@ -8,8 +8,7 @@ categories: ["android"]
 ### 1. 下载 AOSP源码，配置编译环境
 略
 ### 2. 目录结构
-device下新建一个sample目录保存我们即将写的native服务
-我的目录结构如下，这个service将在sample目录中实现。
+device下新建一个sample目录保存我们即将写的native服务,我的目录结构如下，这个service将在sample目录中实现。
 
         device
             |
@@ -25,13 +24,13 @@ device下新建一个sample目录保存我们即将写的native服务
 
 ### 3. 编写AIDL文件
 
-新建AIDL文件aidl,声明接口，接口名称要与文件名一致。 in/out来表示是输入/输出参数，默认是in，out参数在最终生成的从C++源文件会以指针实现。这里定义了一个DoSomething接口，有两个参数count和一个string数组，作用是返回count个数的"Hello"在ouput数组中。
+新建AIDL文件aidl,声明接口，接口名称要与文件名一致。 in/out来表示是输入/输出参数，默认是in，out参数在最终生成的从C++源文件会以指针实现。这里定义了一个DoSomething接口，有两个参数:n和一个内含string的vector，功能是返回n个"Hello"在ouput数组中。
 
 ```aidl
 package sample;
 
 interface ISample {
-void DoSomething(int count, out List<String> output);
+void DoSomething(int n, out List<String> output);
 }
 ```
 
@@ -78,7 +77,7 @@ public:
 
     sampleService();
     ~sampleService();
-    virtual ::android::binder::Status DoSomething(int32_t count, ::std::vector<::android::String16>* output);
+    virtual ::android::binder::Status DoSomething(int32_t n, ::std::vector<::android::String16>* output);
 }; 
 
 }
@@ -102,9 +101,9 @@ sampleService::~sampleService() {
     
 }
 
-::android::binder::Status sampleService::DoSomething(int32_t count, ::std::vector<::android::String16>* output) {
+::android::binder::Status sampleService::DoSomething(int32_t n, ::std::vector<::android::String16>* output) {
 
-    for(int i = 0; i < count; i++) {
+    for(int i = 0; i < n; i++) {
         output->push_back(String16("Hello"));
     }
 
@@ -277,3 +276,5 @@ sampletest
 我们客户端传入的参数是3，所以输出三行Hello就代表成功了。
 
 
+### 8. 参考
+https://android.googlesource.com/platform/system/tools/aidl/+/brillo-m10-dev/docs/aidl-cpp.md
