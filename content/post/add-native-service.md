@@ -24,7 +24,7 @@ device下新建一个sample目录保存我们即将写的native服务,我的目�
 
 ### 3. 编写AIDL文件
 
-新建AIDL文件aidl,声明接口，接口名称要与文件名一致。 in/out来表示是输入/输出参数，默认是in，out参数在最终生成的从C++源文件会以指针实现。这里定义了一个DoSomething接口，有两个参数:n和一个内含string的vector，功能是返回n个"Hello"在ouput数组中。
+新建AIDL文件ISample.aidl,声明接口，接口名称要与文件名一致。 in/out来表示是输入/输出参数，默认是in，out参数在最终生成的从C++源文件会以指针实现。这里定义了一个DoSomething接口，有两个参数:n和一个内含string的vector，功能是返回n个"Hello"在ouput数组中。
 
 ```aidl
 package sample;
