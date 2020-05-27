@@ -1,6 +1,5 @@
 ---
 title: "Android 使用AIDL添加 native service"
-date: 2020-03-08T22:03:16+08:00
 tags: ["android"]
 categories: ["android"]
 ---
