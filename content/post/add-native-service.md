@@ -86,7 +86,7 @@ public:
 
 ```
 
-sampleService.cpp，在此实现DoSomething的逻辑，这里就简单的把count个"Hello"塞到vector中返回。
+sampleService.cpp，在此实现DoSomething的逻辑，这里就简单的把n个"Hello"塞到vector中返回。
 
 ```cpp
 #include"sampleService.h"
@@ -206,7 +206,7 @@ include $(BUILD_EXECUTABLE)
 
 ### 6. 实现客户端
 
-客户端就是通过serviceManager取得sampleService的指针后，简单的调用下DoSomething接口,count值传入3，并把返回的vector打印出来。
+客户端就是通过serviceManager取得sampleService的指针后，简单的调用下DoSomething接口, n值传入3，并把返回的vector打印出来。
 
 ```cpp
 #include <binder/IServiceManager.h>
