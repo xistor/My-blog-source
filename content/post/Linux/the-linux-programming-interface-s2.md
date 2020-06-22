@@ -42,7 +42,7 @@ int main()
 }
 ```
 
-编译后执行`strace  -o ./straceout.txt ./a.out`，输出到straceout.txt文件中，内容如下，“=”左边是系统调用，右边是返回值
+编译后执行`strace  -o ./straceout.txt ./a.out`，输出到调用过程到straceout.txt文件中，内容如下，“=”左边是系统调用，右边是返回值
 
 ```
 ...
@@ -74,3 +74,49 @@ char* strerror(int errnum);
 
 需要注意的是strerror返回的字符串指针指向的是一块静态分配的内存，所以后续调用strerror可能会覆盖该字符串。
 
+
+### 编译书中带的源码
+
+下载链接 https://man7.org/tlpi/code/ 一般下载Distribution version即可。
+下载解压后，进入tlpi-dist目录执行`make`,若报错
+
+```
+cc: error: unrecognized command line option ‘-Wimplicit-fallthrough’
+```
+
+考虑将gcc版本升到7以上，参考 https://www.jianshu.com/p/7a8878397213 
+
+
+### 可移植性问题
+
+书中给了几个可移植性问题的例子：
+0. 数据类型，系统相关的数据类型如pid_t等在不同系统上实现不同，所以程序应使用定义好的系统数据类型，而不是原生的int, long等。
+1. 结构体在不同系统实现下，内部元素存储顺序不定，所以最好不使用列表初始化的方式: `struct example s = {1, 2, 3}`,而使用下面这种方式。
+```
+struct example s; 
+s.a=1;
+s.b=2;
+s.c=3;
+```
+
+2. 有些宏可能并没有在所有类UNIX系统上实现，使用前需要先判断是否已定义。如 WCOREDUMP在SUSv3就没有定义。
+3. 有些时候有些头文件在某些系统上不需要包含。
+
+
+### Exercise
+reboot()系统调用
+
+```
+int reboot(int magic, int magic2, int cmd, void *arg);
+```
+
+参数magic需要等于 LINUX_REBOOT_MAGIC1(0xfee1dead) 且magic2 为以下之一才不会调用失败(应该是为了避免误调)
+
+```
+LINUX_REBOOT_MAGIC2 ( 672274793)
+LINUX_REBOOT_MAGIC2A ( 85072278)   since 2.1.17
+LINUX_REBOOT_MAGIC2B ( 369367448)  since 2.1.97
+LINUX_REBOOT_MAGIC2C ( 537993216)  since 2.5.71 
+```
+
+这几个参数的意义是 Linus Torvalds和他三个女儿的生日。
