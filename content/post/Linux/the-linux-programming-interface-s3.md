@@ -9,6 +9,6 @@ categories: ["Linux系统编程手册阅读"]
 
 |File descriptor|Purpose|POSIX name|stdio stream|
 |---------------|-------|-----------|------------|
-|0|standard input|STDIN_FILENO|stdin|stdin|
-|1|standard output|STDOUT_FILENO|stdin|stdout|
-|2|standard error|STDERR_FILENO|stdin|stderr|
+|0|standard input|STDIN_FILENO|stdin|
+|1|standard output|STDOUT_FILENO|stdout|
+|2|standard error|STDERR_FILENO|stderr|
