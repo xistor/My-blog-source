@@ -1,5 +1,5 @@
 ---
-title: "Linux/Unix系统编程手册-笔记3.文件I/O"
+title: "Linux/Unix系统编程手册-笔记3.通用文件I/O"
 date: 2020-07-05T16:01:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
