@@ -69,6 +69,7 @@ fd 参数为某个设备或文件已打开的描述符， request参数指定了
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
+#include <string.h>
 
 #define MAX_BUFFER 256
 int tee(bool append, char* file_name);
@@ -80,11 +81,12 @@ int main(int argc, char* argv[]) {
     char* file;
 
 
-    while ((opt = getopt(argc, argv, "a:")) != -1) {
+    while ((opt = getopt(argc, argv, "a")) != -1) {
         switch (opt) {
         case 'a':
             append = 1;
             file = optarg;
+            std::cout << "optind" << optind << std::endl;
             break;
         default: /* '?' */
             fprintf(stderr, "Usage: %s [-a file]\n",
@@ -93,8 +95,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    tee(append, file);
-
+    tee(append, argv[optind]);
 
 }
 
@@ -104,17 +105,14 @@ int tee(bool append, char* file_name) {
     int outputfd;
     int openflag;
 
-    if (append) {
-        openflag = O_CREAT | O_WRONLY | O_APPEND;
-    }
-    else
-    {
-        openflag = O_CREAT | O_WRONLY;
-    }
     
-    outputfd = open(file_name, openflag, S_IRUSR | S_IWUSR);
+    openflag = O_CREAT | O_WRONLY | (append ? O_APPEND : O_TRUNC);
 
-    std::cout << "append:" << append << " file:" << file_name << std::endl;
+   if( (outputfd = open(file_name, openflag, S_IRUSR | S_IWUSR)) == -1) {
+       printf(strerror(errno));
+       return -1;
+   };
+
     while ((numread = read(STDIN_FILENO, buffer, 256)) > 0)
     {
         buffer[numread] = '\0';
