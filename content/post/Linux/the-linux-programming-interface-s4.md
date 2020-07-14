@@ -16,7 +16,8 @@ categories: ["Linux系统编程手册阅读"]
 fcntl()系统调用对一个打开的文件描述符执行一系列控制操作。
 
 比如获取文件访问模式和状态标志
-```
+
+```cpp
 int flags, accessMode
 
 flags = fcntl(fd, F_GETFL);
@@ -31,7 +32,7 @@ if (flags & O_SYNC)
 
 判断文件访问模式:O_RDONLY(0),O_WRONLY(1),O_RDWR(2)
 
-```
+```cpp
 accessMode = flags & O_ACCMODE;
 if (accessMode == O_WRONLY || accessMOde == ORDWR)
     printf("file is writable\n");
@@ -40,7 +41,7 @@ if (accessMode == O_WRONLY || accessMOde == ORDWR)
 
 可以使用fcntl()的F_SETFL命令来修改打开文件的某些状态标志。允许修改的标志有O_APPEND、O_NONBLOCK、O_NOATIME、O_ASYNC和O_DIRECT。系统将忽略其他标志的修改。修改文件状态标志可以先使用fcntl的F_GETFL命令，来获取当前标志的副本，然后修改需要变更的标志位，再通过F_SETFL命令更新状态标志。
 
-```
+```cpp
 int flags;
 flags = fcntl(fd, F_GETFL);
 
@@ -80,4 +81,31 @@ if (fcntl(fd, F_SETFL, flags) == -1)
 - 在进程A中，文件描述符1和20都指向同一个打开的文件句柄（23），这可能是dup()、dup2()或fcntl()而形成的。dup会创建一个文件描述符的copy,dup2功能类似，区别在于可以指定新的文件描述符而不是使用最小未用编号（之前提过，文件描述符是个小整数）。 如前文所述文件句柄中保存了当前文件偏移量，所以文件描述符指向同一文件句柄将共享文件偏移量，无论这两个文件描述符属于同一进程还是不同进程。同样的文件打开标志也保存在打开的文件句柄中，所以情况一样。（cose-on-exec标志为进程和文件描述符号私有）
 - 进程A和B有文件描述符指向同一个打开的文件句柄，这种情形可能在fork之后出现（即A和B之间是父子关系）或者当某进程通过UNIX域套接字将一个打开的文件描述符传递给另一个进程时也会出现。  
 - 此外不同的文件句柄也可能指向i-node表中的同一个条目，发生中情况是因为每个进程各自对统一文件发起了open()调用。同一个进程两次打开同一文件，也会发生类似情况。
+
+
+### 在文件特定偏移量处的I/O
+
+pread()和pwrite()会在指定偏移量处I/O，且不会改变当前文件偏移量。多线程时进程下的所有线程共享同一文件描述符表，这意味着打开文件的偏移量也为所有线程共享。使用pread() 和pwrite()系统调用可以避免竞争状态。
+
+```cpp
+#include<unistd.h>
+
+ssize_t pread(int fd, void *buf, size_t count, off_t offset);
+
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
+```
+
+### 分散输入和集中输出
+
+```cpp
+#include<sys/uio.h>
+
+ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
+
+ssize_t writev(intfd, const struct iovec *iov, int iovcnt);
+```
+
+readv()系统调用的功能是：从fd所指代的文件中读取一片连续的字节，然后将其散置在iov指定的缓冲区中。从iov[0]开始依次填满每个缓冲区。这个操作是原子的。  
+writev()系统调用的功能是：将iov所指定的所有缓冲区中的数据拼接（“集中”）起来，然后以连续的字节写入fd所指代的文件中。同样是原子操作。  
+linux 2.6.30提供了可以在指定偏移量处执行分散输入/集中输出的系统调用preadv()和pwrite()。
 
