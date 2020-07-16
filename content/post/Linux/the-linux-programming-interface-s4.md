@@ -109,3 +109,26 @@ readv()系统调用的功能是：从fd所指代的文件中读取一片连续�
 writev()系统调用的功能是：将iov所指定的所有缓冲区中的数据拼接（“集中”）起来，然后以连续的字节写入fd所指代的文件中。同样是原子操作。  
 linux 2.6.30提供了可以在指定偏移量处执行分散输入/集中输出的系统调用preadv()和pwrite()。
 
+### 读写大文件
+
+32位系统偏移量最大2^31-1，想要读写大文件有两种方式：
+- 使用fopen64(), open64(), lseek64(), truncate64(), stat64(), mmap64(), setrlimit64()等函数，为了操作大文件还添加了两个新的数据结构stat64和off64_t
+- 使用 _FILE_OFFSET_BITS宏  
+在编译的时候加选项
+
+```
+cc -D_FILE_OFFSET_BITS=64 prog.c
+```
+
+或者在源文件中include头文件之前定义：
+```
+#define _FILE_OFFSET_BITS 64
+```
+
+### 创建临时文件
+
+```cpp
+#include <stdlib.h>
+int mkstemp(char *template);    /* 成功的话返回文件描述符，失败返回-1*/
+```
+参数template 类似于
