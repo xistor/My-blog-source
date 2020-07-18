@@ -21,7 +21,7 @@ categories: ["Linux系统编程手册阅读"]
 
 ### 进程ID和父进程ID
 
-```cpp
+```c
 #include <unistd.h>
 pid_t getpid(void); /*获取进程ID*/
 
@@ -61,7 +61,7 @@ text data bss dec hex filename
 图中的argv和environ是命令行输入的参数和进程环境变量。 etext, edata, 和end可以获得程序段的地址。
 使用方法,在程序中声明：
 
-```cpp
+```c
 extern char etext, edata, end;
 ```
 
@@ -83,4 +83,48 @@ extern char etext, edata, end;
 user 栈里主要有两种信息：
 - 函数参数和局部变量。
 - 调用信息：函数会使用特定的CPU 寄存器，比如程序计数器(program counter)，当函数调用其他函数时，会把寄存器copy一份保存到栈中，以便在调用返回时恢复寄存器。
+
+### 环境变量
+
+在c程序中访问环境变量：
+- 使用全局变量 `char **environ` 访问环境列表。
+- 在main()函数参数中添加声明
+```c
+int main(int argc, char *argv[], char *envp[])
+```
+- getenv()函数从进程环境中检索单个值
+```c
+#include <stdlib.h>
+
+char *getenv(const char *name); // 返回指向字符串的指针，若没找到为NULL
+```
+
+
+### 非局部跳转
+
+c 中的goto语句可以在函数内部跳转，setjmp()和longjmp()提供跨越函数跳转的功能。
+
+```c
+#include <setjmp.h>
+
+int setjmp(jmp_buf env);  /*第一次调用返回0， 通过longjmp()返回的为longjmp()的参数val指定的非零值*/
+
+void longjmp(jmp_buf env, int val); /*若val为0会被替换成1*/
+```
+
+setjmp()调用为后续由longjmp()调用执行的跳转确立了跳转目标，即调用longjmp()会跳到setjmp()调用的位置。setjmp()两次被调用的区别在于返回值不同。
+
+setjmp函数的使用限制：
+- 构成选择或迭代语句中(if、switch、while等)的整个控制表达式
+- 作为一元操作符!(not)的操作对象，其最终表达式构成了选择或迭代语句的整个控制表达式。
+- 作为比较（==、!=、<）等的一部分，另一操作对象必须是一个整数常量表达式，且其最终表达式构成了选择或迭代语句的整个控制表达式。
+- 作为独立函数调用  
+
+`s = setjmp(env);`语句是不符合标准的。  
+
+之所以有这些限制，是因为作为常规函数的setjmp()实现无法保证拥有足够的信息来保存所有寄存器值和封闭表达式中用到的临时栈位置，因此，仅允许在足够简单且无需临时存储的表达式中调用setjmp()。
+
+滥用longjmp():
+longjmp()的调用不能跳转到一个已经返回的函数，因为函数返回后，env中保存的栈信息已经失效了。
+
 
