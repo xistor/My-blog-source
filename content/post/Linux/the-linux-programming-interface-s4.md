@@ -200,3 +200,33 @@ void usage(char* name) {
 -rw-------  1 x x 1052360 Jul 19 15:26 f2
 ```
 原因是不加O_APPEND标志则操作lseek()和write()操作不是原子的。在进程1往当前文件偏移量写入时，另一个进程可能已经写入了大量数据，偏移量已经改变了，两个进程的写入数据存在重叠。所以得到的文件小于加了O_APPEND标志的文件。
+
+6. 例程：
+
+```cpp
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "tlpi_hdr.h"
+
+int main(int argc, char* argv[]) {
+
+    if (argc < 2)
+        errExit("arg err");
+    int fd1, fd2, fd3;
+    fd1 = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    fd2 = dup(fd1);
+    fd3 = open(argv[1], O_RDWR);
+
+    write(fd1, "Hello", 6); // "Hello"
+    getchar();
+    write(fd2, "World", 6); // "HelloWorld"
+    getchar();
+    lseek(fd2, 0, SEEK_SET);
+    write(fd1, "HELLO", 6); // "HELLOWorld"
+    getchar();
+    write(fd3, "Gidday", 6); // "GiddayWorld"   
+}
+```
+
+解释：fd1和fd2指向同一个打开的文件句柄，所以共享文件偏移量，fd3重新打开了文件，所以是一个单独的文件句柄，写入从文件头部开始。
+7. 考虑原子性，writev()需要先分配一块大内存，将各数组copy过去后，调用一次write()写入文件。readv()按顺序读入即可。
