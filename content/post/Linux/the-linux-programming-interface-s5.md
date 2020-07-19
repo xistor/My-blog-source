@@ -56,7 +56,7 @@ text data bss dec hex filename
 - 时间局部性：程序会趋向于访问最近最近访问过的同一块内存（因为程序中有循环）。
 
 
-![虚拟内存布局](/img/the-linux-programming-interface-s5/vm_layout.png)
+![虚拟内存布局](/img/the-linux-programming-interface-s5/vm_layout.png)  
 
 图中的argv和environ是命令行输入的参数和进程环境变量。 etext, edata, 和end可以获得程序段的地址。
 使用方法,在程序中声明：
@@ -67,7 +67,7 @@ extern char etext, edata, end;
 
 虚拟内存会将程序使用的内存分成等大小的单元，称为“页”(pages)。在任意时刻只有程序需要的页才会在内存中，成为u常驻内存集，其他未用的页放在硬盘上的swap区域。当程序访问到了不在物理内存上的页时会触发page fault,内核会挂起程序，将所需的页从硬盘读入到内存中。
 
-![虚拟内存](/img/the-linux-programming-interface-s5/overview_of_vm.png)
+![虚拟内存](/img/the-linux-programming-interface-s5/overview_of_vm.png)  
 如图，内核会为每一个进程维护一个page table,并不是进程的所有虚拟内存地址都有对应的page table入口，通常有一大部分虚拟地址空间是没用到的。当进程试图访问没有一个没有page table入口的地址时，会收到SIGSEGV信号。  
 
 虚拟内存的好处：
