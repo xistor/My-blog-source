@@ -131,4 +131,72 @@ cc -D_FILE_OFFSET_BITS=64 prog.c
 #include <stdlib.h>
 int mkstemp(char *template);    /* 成功的话返回文件描述符，失败返回-1*/
 ```
-参数template 类似于
+参数template 类似于 "/tmp/exampleXXXXXX",最后6个字符必须为XXXXXX,这6个字符将被替换，正是因为会替换字符，所以传入参数必须是字符数组而非字符串常量。
+
+```cpp
+#include <stdio.h>
+FILE *tmpfile(void)
+```
+tmpfile()函数会创建一个名称唯一的临时文件，并以只读方式打开。执行成功会返回一个文件流，关闭文件流后将自动删除临时文件。
+
+ ### Exercise
+
+2. O_APPEND  
+The file is opened in append mode.  Before each write(2), the file offset is positioned at the end of the file, as if with lseek(2).
+3. 验证代码如下：
+
+```cpp
+
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "tlpi_hdr.h"
+
+
+void usage(char* name);
+
+
+int main(int argc, char* argv[]) {
+
+    int fd, openflag, num;
+    bool x = false;
+
+    if (argc > 4 || argc < 3) {
+        usage(argv[0]);
+    }
+
+    if (argc == 4 && *argv[3] == 'x') {
+        openflag = O_CREAT | O_WRONLY;
+        x = true;
+    } else if (argc == 3) {
+        openflag = O_CREAT | O_WRONLY | O_APPEND;
+    } else {
+        usage(argv[0]);
+    }
+    
+    if ((fd = open(argv[1], openflag, S_IRUSR | S_IWUSR)) == -1) {
+        errExit("open");
+    }
+
+    num = atoi(argv[2]);
+
+    for (int i =0; i < num; i++) {
+        lseek(fd, 0, SEEK_END);
+        write(fd, "0", 1);
+    }
+    close(fd);
+}
+
+void usage(char* name) {
+    printf("usage %s filename num-bytes [x]\n", name);
+    exit(EXIT_FAILURE);
+}
+
+```
+
+使用和不使用O_APPEND标志，得到的文件大小存在差异：
+
+```sh
+rw-------  1 x x 2000000 Jul 19 15:26 f1
+-rw-------  1 x x 1052360 Jul 19 15:26 f2
+```
+原因是不加O_APPEND标志则操作lseek()和write()操作不是原子的。在进程1往当前文件偏移量写入时，另一个进程可能已经写入了大量数据，偏移量已经改变了，两个进程的写入数据存在重叠。所以得到的文件小于加了O_APPEND标志的文件。
