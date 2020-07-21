@@ -131,3 +131,18 @@ longjmp()的调用不能跳转到一个已经返回的函数，因为函数返�
 编译器优化  
 优化器对代码的优化会受到longjmp() 干扰，因此最好将局部变量声明为volatile，但最好尽可能避免使用setjmp()和longjmp()。
 
+ ### Exercise
+ 1. 编译后的mem_segments使用ll查看结果：
+
+ ```
+-rwxr-xr-x  1 x x 11624 Jul 20 23:35 mem_segments*
+ ```
+
+ 使用命令`size mem_segments`查看：
+ ```
+text	   data	    bss	        dec	        hex	    filename
+1918	   636	    10305568	10308122	9d4a1a	mem_segments
+ ```
+ 可见bss区的大小已经10305568字节(大约9.8M)了,原因是bss段保存未初始化的全局变量和静态变量，当程序保存在硬盘上的时候是不需要保存这些没初始化的变量的，其空间是在程序载入内存的时候才会分配。
+
+ 
