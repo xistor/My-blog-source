@@ -188,4 +188,4 @@ re malloc, program break is: 0x56289c15f000
 
 ```
 
-符合预期，malloc()不会每次申请内存都去调用sbrk()，而且free()后的内存会再次保存在空闲内存链表中，在malloc()再次申请时返回给调用者。
+符合预期，malloc()不会每次申请内存都去调用sbrk()，而且free()后的内存会保存在空闲内存链表中，在malloc()再次申请时返回给调用者。
