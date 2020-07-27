@@ -15,3 +15,14 @@ char *crypt(const char *key, const char *salt);
     /* Returns pointer to statically allocated string containing
     encrypted password on success, or NULL on error */
 ```
+
+crypt接受一个最长8个字符的密钥，并施之以数据加密算法（DES）的一种变体。slat参数指向一个两字符的字符串，用来扰动DES算法。。函数会返回一个指针，指向长度为13个字节的字符串。该字符串为静态分配的。内容即为经过加密处理的密码。和/etc/shadow里的加密密码记录做比较就能知道当前输入的密码是否正确。  
+
+加密候选密码时，能够从已加密的密码(/etc/shadow)中获取salt值。在crypt()函数的参数salt只有前两位有意义。因此，可以直接将已加密密码指定为salt参数。
+
+ ### Exercise
+2. 首先这三个函数的功能是：  
+- setpwent(): 重返密码文件起始处
+- getpwent(): 从密码文件中逐条返回记录，当不再有记录或出错时，返回NULL。
+- endpwent(): 关闭密码文件。
+
