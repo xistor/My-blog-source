@@ -12,12 +12,12 @@ categories: ["Linux系统编程手册阅读"]
 - 文件系统用户ID(file-system user ID)和组ID
 - 补充组ID(supplementary group ID)
 
-#### real user ID 和 real group ID
+### real user ID 和 real group ID
 
 ruid、rgid 由启动进程的用户决定，通常是登录用户，或者是继承自父进程。
 
 
-#### Effective User ID 和 Effective Group ID
+### Effective User ID 和 Effective Group ID
 在访问文件时，系统会检查进程的euid和egid，以判断进程是不是有权限访问。在一般情况下和ruid、rgid是一样的。但再两种情况下可以不一样,一种是使用setuid()函数改变uid,一种是执行set-user-id和set-group-id程序。
 
 
@@ -49,4 +49,4 @@ chmod u+s xxx       // Turn on set-user-ID permission bit
 chmod g+s xxx       // Turn on set-group-ID permission bit
 ```
 
-#### Saved Set-User-ID 和 Saved Set-Group-ID
+### Saved Set-User-ID 和 Saved Set-Group-ID
