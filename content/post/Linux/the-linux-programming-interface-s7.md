@@ -26,3 +26,42 @@ crypt接受一个最长8个字符的密钥，并施之以数据加密算法（DE
 - getpwent(): 从密码文件中逐条返回记录，当不再有记录或出错时，返回NULL。
 - endpwent(): 关闭密码文件。
 
+需要实现的getpwnam()的功能是: 获取指定登录名的密码记录信息。
+其实就是书中介绍这几个函数的时给的示例代码段。
+
+```cpp
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include "tlpi_hdr.h"
+
+struct passwd* ex_getpwnam(const char * name);
+
+int main(int argc, char* argv[]) {
+    struct passwd *pwd;
+    if(argc != 2){
+        printf("usage: %s login_name \n", argv[0]);
+        errExit("arg");
+    }
+
+    pwd = ex_getpwnam(argv[1]);
+
+    printf("%s\n", pwd->pw_name);
+    printf("%s\n", pwd->pw_passwd);
+    printf("%d\n", pwd->pw_uid);
+    printf("%d\n", pwd->pw_gid);
+    
+}
+
+struct passwd* ex_getpwnam(const char * name) {
+    struct passwd *pwd;
+
+    printf("name :%s", name);
+    while((pwd = getpwent()) != NULL) {
+        if(!strcmp(name, pwd->pw_name))
+            return pwd;
+    }
+    endpwent();
+    return NULL;
+}
+```
