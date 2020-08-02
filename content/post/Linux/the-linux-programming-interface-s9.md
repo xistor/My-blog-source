@@ -27,7 +27,7 @@ main(int argc, char *argv[])
     /* Retrieve time, convert and display it in various forms */
 
     /*
-        time()函数返回一个time_t类型的值，是一个有符号整数，值代表离1970.1.1零点过去的秒数
+        time()函数返回一个time_t类型的值，是一个有符号整数，值代表当前时间离1970.1.1零点过去的秒数
     */
     t = time(NULL);
     printf("Seconds since the Epoch (1 Jan 1970): %ld", (long) t);
@@ -36,7 +36,7 @@ main(int argc, char *argv[])
     /* 
     timeval 结构体
       struct timeval {
-          time_t tv_sec;    // 从1970.1.1 零点开始的秒数
+          time_t tv_sec;            // 从1970.1.1 零点开始的秒数
           suseconds _t tv_usec;     // 附加的毫秒 (long int)
       }
     */
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
                                < 0 : 尝试判定DTS在每年的这一时间是否生效
         }
 
-        gmtime()函数能够把日历时间转换为一个对应于UTC的分解时间
+        gmtime()函数能够把日历时间转换为一个对应于UTC的分解时间，也就是上面的结构体
 
     */
     gmp = gmtime(&t);
@@ -81,7 +81,7 @@ main(int argc, char *argv[])
                 TZ=Pacific/Auckland calendar_time
     */
 
-    /* localtime()函数会考虑时区和夏令时设置 */
+    /* localtime()函数会考虑时区和夏令时设置，其他和gmtime()一致 */
     locp = localtime(&t);
     if (locp == NULL)
         errExit("localtime");
