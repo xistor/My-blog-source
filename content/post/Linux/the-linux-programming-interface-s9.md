@@ -160,6 +160,7 @@ displayProcessTimes(const char *msg)
 
     /*
         clock()返回调用进程使用的总的CPU时间，包括用户和系统。
+        clock() 返回的时间分辨率是 CLOCKS_PER_SEC
     */
     clockTime = clock();
     if (clockTime == -1)
@@ -176,7 +177,7 @@ displayProcessTimes(const char *msg)
             clock_t tms_cstime; // 调用者执行了系统调用wait()的所有已经终止的子进程使用的系统CPU时间
         }
 
-        
+       times()返回的时间分辨率是ticks， sysconf(_SC_CLK_TCK)返回的是每秒ticks数。相除即得秒数。 
     */
     if (times(&t) == -1)
         errExit("times");

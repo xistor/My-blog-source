@@ -24,14 +24,14 @@ ruid、rgid 由启动进程的用户决定，通常是登录用户，或者是�
 ### Set-User-ID 和 Set-Group-ID 程序
 
 一个set-user-ID 程序可以在其运行时以它的可执行文件的uid和gid运行。
-比如典型的passwd,一般用户没有权限修改/etc/shadow, 所以passwd需要以root运行：
+比如典型的passwd,由于一般用户没有权限修改/etc/shadow, 所以passwd需要以root运行：
 
 ```
 $ll /usr/bin/passwd
 -rwsr-xr-x 1 root root 54256 Mar 27  2019 /usr/bin/passwd*
 ```
 
-代表可执行权限的'x'变成了's'。然后我们执行'passwd'，并用'ps -al' 看一下'passwd'进程的uid。
+`ll`看到`passwd`的二进制文件的owner是root，代表可执行权限的`x`变成了`s`。然后我们执行`passwd`，并用`ps -al` 看一下`passwd`进程的uid。
 
 ```
 F S   UID   PID  PPID  C PRI  NI ADDR SZ  WCHAN TTY          TIME CMD
@@ -41,8 +41,9 @@ F S   UID   PID  PPID  C PRI  NI ADDR SZ  WCHAN TTY          TIME CMD
 
 ```
 
-可见'passwd'的uid并不是去执行它的用户的uid,而是其可执行文件的uid,也就是root。  
-可以通过'chmod'给可执行文件设置  set-user-ID 和 set-group-ID bits
+可见`passwd`的uid并不是去执行它的用户的uid,而是其可执行文件owner的uid,也就是root。这也就让一般用户也可以其修改密码。 
+ 
+可以通过`chmod`给可执行文件设置  set-user-ID 和 set-group-ID bits
 
 ```sh
 chmod u+s xxx       // Turn on set-user-ID permission bit        
