@@ -100,3 +100,179 @@ dr-xr-xr-x 4 root root 0 Aug  3 14:20 task/
 
 ### Exercise
 
+2.绘制树状结构，展示系统中所有进程的父子关系。
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <string>
+#include <dirent.h>
+#include <limits.h>
+#include <string.h>
+#include <map>
+
+#define MAX_LINE 1000
+
+struct tree_node
+{
+    pid_t id;
+    pid_t ppid;
+    std::string cmd;
+    std::vector<tree_node*> children;
+};
+
+
+void printTree(tree_node*, int);
+
+
+int main() {
+
+    DIR *dirp;
+    struct dirent *dp;
+    char path[PATH_MAX];
+    char line[MAX_LINE], cmd_str[MAX_LINE];
+    pid_t ppid;
+    FILE *fp;
+    char *p;
+    bool gotname, gotpid, gotppid;
+
+    dirp = opendir("/proc");
+    if (dirp == NULL)
+        return -1;
+
+    /* Scan entries under /proc directory */
+
+
+    std::map<pid_t, tree_node*> pmap;    // id > process 便于查找
+
+    gotname = false;
+    gotppid = false;
+
+    for (;;) {
+        errno = 0;              /* To distinguish error from end-of-directory */
+        dp = readdir(dirp);
+        if (dp == NULL) {
+            if (errno != 0)
+                return -1;
+            else
+                break;
+        }
+
+        /* Since we are looking for /proc/PID directories, skip entries
+           that are not directories, or don't begin with a digit. */
+
+        if (dp->d_type != DT_DIR || !isdigit((unsigned char) dp->d_name[0]))
+            continue;
+
+        snprintf(path, PATH_MAX, "/proc/%s/status", dp->d_name);
+
+        fp = fopen(path, "r");
+        if (fp == NULL)
+            continue;           /* Ignore errors: fopen() might fail if
+                                   process has just terminated */
+
+        while (!gotname || !gotppid) {
+            if (fgets(line, MAX_LINE, fp) == NULL)
+                break;
+
+            /* The "Name:" line contains the name of the command that
+               this process is running */
+
+            if (strncmp(line, "Name:", 5) == 0) {
+                for (p = line + 5; *p != '\0' && isspace((unsigned char) *p); )
+                    p++;
+                // 去除最后的换行符
+                char *pt = p;
+                while(*pt != '\n' && *pt != '\0')
+                    pt++;
+                *pt = '\0';
+
+                strncpy(cmd_str, p, MAX_LINE - 1);
+                cmd_str[MAX_LINE -1] = '\0';        /* Ensure null-terminated */
+
+            }
+
+            if (strncmp(line, "PPid:", 5) == 0) {
+                ppid = strtol(line + 6, NULL, 10);      /* Ensure null-terminated */
+            }
+
+        }
+
+        tree_node *pinfo = new tree_node;
+        pinfo->id = strtol(dp->d_name, NULL, 10);
+        pinfo->cmd = std::string(cmd_str);
+        pinfo->ppid = ppid;
+        pmap[pinfo->id] = pinfo;
+
+        fclose(fp);
+    }
+
+    // 构建进程树
+    for (auto item : pmap) {
+        if (pmap.count(item.second->ppid) > 0) {
+            pmap[item.second->ppid]->children.push_back(item.second);
+        }
+    }
+    // 打印
+    printTree(pmap[1], 0);          
+}
+
+
+// 递归的打印出进程的所有子进程
+
+void printTree(tree_node* node, int level) {
+
+    for(int i = 0; i < level; i++)
+    {
+        printf("|");
+        printf("     ");
+    }
+
+    printf("|--- ");
+    printf("[%d]%s\n", node->id, node->cmd.c_str());
+    
+    for(auto i : node->children) {
+        printTree(i, level + 1);
+    }
+}
+
+```
+
+运行结果：
+
+```sh
+|--- [1]systemd
+|     |--- [367]systemd-journal
+|     |--- [423]systemd-udevd
+|     |--- [895]systemd-resolve
+|     |--- [896]systemd-timesyn
+|     |--- [985]accounts-daemon
+|     |--- [986]acpid
+|     |--- [989]avahi-daemon
+|     |     |--- [1036]avahi-daemon
+|     |--- [992]bluetoothd
+|     |--- [994]cron
+|     |--- [996]cupsd
+|     |--- [997]dbus-daemon
+|     |--- [998]NetworkManager
+|     |--- [1005]irqbalance
+|     |--- [1008]networkd-dispat
+|     |--- [1014]polkitd
+|     |--- [1018]rsyslogd
+|     |--- [1023]nvidia-persiste
+|     |--- [1024]snapd
+|     |--- [1027]switcheroo-cont
+|     |--- [1031]systemd-logind
+|     |--- [1032]systemd-machine
+|     |--- [1033]thermald
+|     |--- [1034]udisksd
+|     |--- [1035]wpa_supplicant
+|     |--- [1072]cups-browsed
+|     |--- [1079]ModemManager
+|     |--- [1130]libvirtd
+|     |--- [1131]unattended-upgr
+|     |--- [1363]dnsmasq
+
+...
+
+```
