@@ -9,7 +9,7 @@ categories: ["Linux系统编程手册阅读"]
 
 ### /proc/PID
 
-对于每个进程，根据其PID可在/proc找到对应的文件夹，其中文件status提供了进程许多信息，=以init为例，如下：
+对于每个进程，根据其PID可在/proc找到对应的文件夹，其中文件status提供了进程许多信息，以init为例，这是在wsl上的情况：
 
 ```sh
 Name:   init
@@ -143,7 +143,7 @@ int main() {
     /* Scan entries under /proc directory */
 
 
-    std::map<pid_t, tree_node*> pmap;    // id > process 便于查找
+    std::map<pid_t, tree_node*> pmap;    // id > process, 树结构查找麻烦，建立一个map辅助查找
 
     gotname = false;
     gotppid = false;
