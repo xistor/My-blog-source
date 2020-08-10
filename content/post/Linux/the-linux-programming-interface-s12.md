@@ -65,7 +65,7 @@ setvbuf(fp, buf, (buf != NULL) ? _IOFBF : _IONBF, size);
 int fflush(FILE *stream);
 ```
 
-如果参数`stream`为NULL, `fflush`将刷新所有stdio缓冲区。`fflush`用户read stream 时会把读缓冲区中的数据全部丢弃。
+如果参数`stream`为NULL, `fflush`将刷新所有stdio缓冲区。`fflush`用于读文件流时会把读缓冲区中的数据全部丢弃。
 
 **stdio缓冲区刷新时机**   
 除了 无缓冲、行缓冲、全缓冲这三个模式下规定的刷新时机，还有以下两种情况。
