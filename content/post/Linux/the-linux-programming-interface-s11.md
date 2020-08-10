@@ -101,6 +101,8 @@ dr-xr-xr-x 4 root root 0 Aug  3 14:20 task/
 ### Exercise
 
 2.绘制树状结构，展示系统中所有进程的父子关系。
+此程序首先遍历/proc文件夹，以数字寻找进程文件夹，并读取其下面status文件中的cmdline和PPid信息。
+读取后首先保存于一个map中，之后遍历map创建一个树形结构，并打印出来。
 
 ```cpp
 #include <iostream>
