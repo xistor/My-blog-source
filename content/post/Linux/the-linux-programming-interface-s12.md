@@ -118,7 +118,7 @@ vm.dirty_expire_centisecs = 3000
 ```cpp
 fd = open(pathname, O_WRONLY | O_SYNC);
 ```
-open后后续每个write()调用会自动将文件爱你数据和元数据直接写入磁盘。
+open后后续每个write()调用会自动将文件数据和元数据直接写入磁盘。
 
 **O_DSYNC和O_RSYNC**
 
