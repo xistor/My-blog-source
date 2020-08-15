@@ -1,8 +1,8 @@
 ---
 title: "Android 使用AIDL添加 native service"
 date: 2020-05-27T23:03:16+08:00
-tags: ["android"]
-categories: ["android"]
+tags: ["Android"]
+categories: ["Android"]
 ---
 
 ### 1. 下载 AOSP源码，配置编译环境
