@@ -13,8 +13,8 @@ b. 输入PIN码，当看到“你现在处于开发者模式”，点击返回�
 c. 系统(system)->高级->开发者选项(Developer options)->打开OEM锁和USB调试  
 
 ## step2
-USB连接手机，确保ADB已配置好，并且可以和手机正常通信。若`adb deviuces`报`no permission`错误，则按以下步骤处理:  
-a. `lsusb` 找到手机的id，即`18d1:4ee7`。
+USB连接手机，确保ADB已配置好，并且可以和手机正常通信。若`adb devices`报`no permission`错误，则按以下步骤处理:  
+a. `lsusb` 找到手机的id，即下面的`18d1:4ee7`。
 ```
 Bus 001 Device 009: ID 18d1:4ee7 Google Inc. Pixel 3
 ```
