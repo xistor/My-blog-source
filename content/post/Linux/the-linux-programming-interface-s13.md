@@ -81,3 +81,36 @@ i-node 中维护的信息包括:
 对于大小为4096字节的块而言，只计算三重指针，单个文件大小可略大于1024×1024×1024×4096字节（即4TB）。  
 该设计的另一优点在于文件可以有黑洞。文件系统只需要将i节点和间接指针块中的相应指针打上标记（值0），表明这些指针并未只想实际的磁盘块即可。
 
+
+## 获得文件系统有关的信息 ： statvfs()
+
+```cpp
+#include <sys/statvfs.h>
+
+int statvfs(const char* pathname, struct statvfs * statvfsbuf);
+int fstatvfs(int fd, stuct statvfs *statvfsbuf);
+```
+两者区别仅在于其识别文件系统的方式。返回的 statvfs数据结构如下：
+
+```cpp
+struct statvfs
+  {
+    unsigned long int f_bsize;          // 文件系统 block大小（bytes）
+    unsigned long int f_frsize;         // 基本文件系统 block大小（bytes）
+    fsblkcnt_t f_blocks;                // 文件系统中block总数
+    fsblkcnt_t f_bfree;                 // 空闲block总数
+    fsblkcnt_t f_bavail;                // 非特权进程可用的空闲block数
+    fsfilcnt_t f_files;                 // i-nodes数量
+    fsfilcnt_t f_ffree;                 // 空闲 i-nodes数量
+    fsfilcnt_t f_favail;                // 非特权进程可用的i-nodes数量
+    unsigned long int f_fsid;           // file-system ID
+    unsigned long int f_flag;           // mount flags
+    unsigned long int f_namemax;        // 此文件系统上的文件名最大长度
+```
+
+- 绝大多数Linux文件系统上f_bsize和f_frsize是相同的，但有些文件系统支持块片段的概念，，在无需使用完整数据块的情况下，可在文件尾部分配较小的存储单元，从而避免因分配完整块而导致的空间浪费。在此类文件系统上f_frsize和f_bsize分别为块片段和整个块的大小。
+- 一般文件系统都会给root预留一部分空间，ext3、ext4一般默认预留5%
+
+## Exercise
+
+1. 个人认为区别不大，文件删除只删除i-node信息，i-node信息直接通过i-number可以随机访问，所以随机删除和按顺序删除的耗时应该区别不大。

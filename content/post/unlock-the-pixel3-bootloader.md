@@ -9,7 +9,7 @@ categories: ["Android"]
 
 ## step1
 a. 进入手机设置(setting)->关于手机(about phone)->点击版本号(Build number) 7次  
-b. 当看到“你已经处于开发者模式”，点击返回。  
+b. 输入PIN码，当看到“你现在处于开发者模式”，点击返回。  
 c. 系统(system)->高级->开发者选项(Developer options)->打开OEM锁和USB调试  
 
 ## step2
