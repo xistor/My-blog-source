@@ -62,3 +62,10 @@ int fremovexattr(int fd, const char *name);
 
 还是常见的系统调用三剑客，使用详见https://man7.org/linux/man-pages/man2/setxattr.2.html 及 https://man7.org/linux/man-pages/man2/getxattr.2.html  
 
+## 扩展属性的限制
+
+### user EA的限制
+
+user EA 只能用于文件和目录。原因有以下几点：
+- 对于符号链接，所有权限对所有用户都是打开的，而user EA需要考虑权限所以相互矛盾
+- 对于设备文件、套接字以及FIFO而言，授予用户权限，意在对其针对底层对象所执行的i/o操作加以控制，如果想使用这些权限来控制user EAs的操作，二者可能会出现权限冲突。
