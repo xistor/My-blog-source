@@ -209,3 +209,34 @@ main(int argc, char *argv[])
 }
 
 ```
+
+需要注意的是，有时候我们在程序中需要记录程序某个操作的运行时间，会使用类似下面的代码
+
+```cpp
+double dur;
+clock_t start,end;
+start = clock();
+
+foo();  // dosomething
+
+end = clock();
+dur = (double)(end - start);
+printf("Use Time:%f\n",(dur/CLOCKS_PER_SEC));
+```
+
+但是clock()内统计的是cpu运行时间，如果在两次clock()调用之间调用了sleep(),由于sleep()不会占用cpu()，所以我们实际感觉的程序运行时间会比使用上述方式统计的时间长。最好使用下面这种方式来计算运行时间：
+
+```cpp
+
+time_t t1, t2;
+float diff_time;
+
+time(&t1);
+
+foo();  // dosomething
+
+time(&t2);
+diff_time = difftime(t2, t1);
+```
+
+这个时间一般才是我们想要运行时间。
