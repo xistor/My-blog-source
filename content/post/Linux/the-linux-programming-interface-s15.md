@@ -60,7 +60,7 @@ int fremovexattr(int fd, const char *name);
 
 ```
 
-还是常见的系统调用三剑客，使用详见https://man7.org/linux/man-pages/man2/setxattr.2.html 及 https://man7.org/linux/man-pages/man2/getxattr.2.html  
+还是常见的系统调用三剑客，使用详见 https://man7.org/linux/man-pages/man2/setxattr.2.html 及 https://man7.org/linux/man-pages/man2/getxattr.2.html  
 
 ## 扩展属性的限制
 
