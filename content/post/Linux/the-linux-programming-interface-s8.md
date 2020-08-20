@@ -10,7 +10,7 @@ categories: ["Linux系统编程手册阅读"]
 - 有效用户ID(effective user ID)和组ID
 - 保存的set-user-ID(saved set-user-ID)和set-group-ID
 - 文件系统用户ID(file-system user ID)和组ID
-- 补充组ID(supplementary group ID)
+- 附属组ID(supplementary group ID)
 
 ### real user ID 和 real group ID
 
