@@ -294,4 +294,148 @@ char *basename(char *pathname);
 
 1. 根据提示，在编译前后使用`ls -li`查看，发现可执行文件的i-number改变了，所以实际行为为原可执行文件的在目录中的记录被删除了，但其i-node在其执行期间还存在，只不过新建了一个新文件以及i-node信息，文件名指向了新的i-number。
 
-3.  
+3.  Github上找到了一个小哥写的[程序](https://github.com/timjb/tlpi-exercises/blob/master/realpath_clone.c)，花了点时间看懂了，加了些注释。
+
+```cpp
+#include <limits.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "tlpi_hdr.h"
+
+char *my_realpath_relative (const char *, char *);
+char *my_realpath(const char *, char *);
+
+char *my_realpath_relative (const char *path, char *relative_path) {
+  
+  // path为绝对路径的话， relative_path先赋值为“/”
+  // 这个relative_path也就是上层调用传入的resolved_path，也就是最终调用者拿到的真实路径所在的缓冲区指针
+  // 所以对其修改都会影响到最终解析出的路径
+
+  if (path[0] == '/') {
+    relative_path[0] = '/';
+    relative_path[1] = '\0';
+  }
+
+  int i = 0, j = 0;
+  // 遍历path
+  while (path[i] != '\0') {
+
+    /*
+      i 指向一层目录的起始处，j 指向一层目录结尾 '/'或 '\0'
+      比如传入路径为"/home/x/work/a/b/c"， 在第一次循环时i指向'h', j 指向"home"之后的'/'字符
+      这样就把一层目录分割出来，每次循环前进一层目录，直至字符串末尾
+    */
+
+    while (path[i] == '/') { i++; }
+    j = i;
+    while (path[j] != '/' && path[j] != '\0') {
+      j++;
+    }
+
+
+    // 当 path 为 "/"时会出现 j == i
+    if (j > i) {
+
+      /*
+        接下来处理单层目录，分了三种情况
+      */
+      if (j - i == 1 && path[i] == '.') {
+        /*  当前处理目录字符串是 "."， 什么也不做 */
+      } else if (j - i == 2 && path[i] == '.' && path[i+1] == '.') {
+        /* 当前处理的目录字符串是 ".."， 调用dirname()，取得上层目录路径，并取代relative_path中原先的路径 */
+
+        char *dirn = dirname(relative_path);
+        strncpy(relative_path, dirn, PATH_MAX);
+      } else {
+        if (relative_path[strlen(relative_path)-1] != '/') {
+          strncat(relative_path, "/", PATH_MAX);
+        }
+
+        /* 
+          记录当前relative_path内路径字符串的长度，后面有用
+          比如传入路径为"/home/x/work/a/b/c"， 当前处理到"work"这层，此时"work"还没有被添加到relative_path中，
+          所以得到的为"/home/x/"的长度， relative_path_len 为8
+          后续都以"work"为例
+        */
+        size_t relative_path_len = strlen(relative_path);
+
+        /* 把当前处理的目录append到relative_path的末尾，那么relative_path执行完下面这句后为
+          "/home/x/work/"
+        */
+        strncat(relative_path, &path[i], j-i+1);
+        struct stat stat_buf; 
+        if (lstat(relative_path, &stat_buf) == -1) { return NULL; }
+        /*
+          如果当前是一个符号链接的话，则调用readlink()读取符号链接内的字符串，
+          并将relative_path恢复，比如当前处理的"work"是一个符号链接，则将"work"从relative_path中删除，
+          也就是说relative_path变成了"/home/x/", 当然从符号链接中取出的路径还是要继续解析的，所以还需要递归的
+          调用my_realpath_relative。这里又有两种情况：
+          1. 符号链接里的是绝对路径：那么my_realpath_relative函数一开始会判断并将relative_path重置为"/",
+          使用符号链接里的路径继续解析，比如"work"指向的路径为"/a/b/c"，一个前缀完全不一样的绝对路径，则再次进入
+          my_realpath_relative后，relative_path被重置为"/",然后按a->b->开始重新解析。
+          2. 符号链接里的是相对路径：那么relative_path中保存路径还是有用的，则my_realpath_relative会在relative_path
+          后面添加新的解析后的路径。
+        */
+        if (S_ISLNK(stat_buf.st_mode)) {
+          char buf[PATH_MAX];
+          ssize_t len = readlink(relative_path, buf, PATH_MAX);
+          if (len == -1) { return NULL; }
+          relative_path[relative_path_len] = '\0';
+          if (my_realpath_relative(buf, relative_path) == NULL) {
+            return NULL;
+          }
+          // 至此，递归结束后，relative_path中已经为"work"在文件系统中的绝对路径。
+        }
+      }
+    }
+    /*
+      进入下一层目录
+    */
+    i = j;
+  }
+
+  return relative_path;
+}
+
+char *my_realpath(const char *path, char *resolved_path) {
+  if (path == NULL) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  if (resolved_path == NULL) {
+    resolved_path = (char *) malloc(PATH_MAX);
+  }
+
+  // 如果是相对路径的话就先获取当前工作目录，作为前缀加到resolved_path中
+  if (path[0] != '/') {
+    if (getcwd(resolved_path, PATH_MAX) == NULL) {
+      return NULL;
+    }
+    strncat(resolved_path, "/", PATH_MAX);
+  }
+
+  /* 
+    解析路径 
+    当参数path是相对路径，resolved_path已经有了其绝对路径前缀，后续解析在它之后添加就可以了
+    当参数path是绝对路径，则resolved_path内还是空的，继续看my_realpath_relative函数
+  */
+  return my_realpath_relative(path, resolved_path);
+}
+
+int main (int argc, char *argv[]) {
+  if (argc != 2) {
+    usageErr("%s path", argv[0]);
+  }
+  char *path = argv[1];
+  char resolved_path[PATH_MAX];
+  if (my_realpath(path, resolved_path) == resolved_path) {
+    printf("%s", resolved_path);
+  } else {
+    errExit("my_realpath\n");
+  }
+  exit(EXIT_SUCCESS);
+}
+```
