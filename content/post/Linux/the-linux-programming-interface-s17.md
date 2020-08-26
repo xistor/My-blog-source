@@ -145,7 +145,7 @@ int closedir(DIR *dirp);
 int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result); // 可重入版的readdir()
 ```
 
-opendir()和fdopendir()都会但会指向DIR类型结构的指针。该结构即所谓目录流。每调用readdir()一次，就会从dirp所指代的目录流读取下一目录条目。并返回一枚指针指向静态分配而得的dirent类型结构，每次调用readdir()都会覆盖该结构。  
+opendir()和fdopendir()都会但会指向DIR类型结构的指针。该结构即所谓目录流。每调用readdir()一次，就会从dirp所指代的目录流读取下一目录条目。并返回一枚指针指向静态分配而得的dirent类型结构，每次调用readdir()都会覆盖该结构,读取完毕后返回NULL。  
 rewinddir()函数可将目录流回移到起点。  
 closedir()函数将dirp指代的目录流关闭。
 
@@ -292,9 +292,8 @@ char *basename(char *pathname);
 
 ## Exercise
 
-1. 根据提示，在编译前后使用`ls -li`查看，发现可执行文件的i-number改变了，所以实际行为为原可执行文件的在目录中的记录被删除了，但其i-node在其执行期间还存在，只不过新建了一个新文件以及i-node信息，文件名指向了新的i-number。
-
-3.  Github上找到了一个小哥写的[程序](https://github.com/timjb/tlpi-exercises/blob/master/realpath_clone.c)，花了点时间看懂了，加了些注释。
+1.根据提示，在编译前后使用`ls -li`查看，发现可执行文件的i-number改变了，所以实际行为为原可执行文件的在目录中的记录被删除了，但其i-node在其执行期间还存在，只不过新建了一个新文件以及i-node信息，文件名指向了新的i-number。  
+3.Github上找到了一个小哥写的[程序](https://github.com/timjb/tlpi-exercises/blob/master/realpath_clone.c)，花了点时间看懂了，加了些注释。
 
 ```cpp
 #include <limits.h>
@@ -438,4 +437,12 @@ int main (int argc, char *argv[]) {
   }
   exit(EXIT_SUCCESS);
 }
+```
+
+7.实现nftw()
+
+```
+
+
+
 ```

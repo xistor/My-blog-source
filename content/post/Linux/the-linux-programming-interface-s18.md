@@ -6,13 +6,14 @@ categories: ["Linux系统编程手册阅读"]
 ---
 
 
-这章就只介绍了inotify机制。直接根据例程看如何使用比较简单直接：
+这章就只介绍了inotify机制,用来监控某个目录下的文件变化。直接看例程比较简单直接：
 
 ```cpp
 #include <sys/inotify.h>
 #include <limits.h>
 #include "tlpi_hdr.h"
-static void /* Display information from inotify_event structure */
+static void /* 这一坨函数只是打印出变化事件 */
+
 displayInotifyEvent(struct inotify_event *i)
 {
     printf(" wd =%2d; ", i->wd);
@@ -40,6 +41,10 @@ displayInotifyEvent(struct inotify_event *i)
     printf(" name = %s\n", i->name);
 }
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
+
+
+/*下面是使用inotify的三个步骤*/
+
 int
 main(int argc, char *argv[])
 {
@@ -52,7 +57,6 @@ main(int argc, char *argv[])
         usageErr("%s pathname... \n", argv[0]);
 
     /*
-        使用inotify主要分三步
         step 1: 调用inotify_init()创建一个inotify实例
     */
     inotifyFd = inotify_init(); /* Create inotify instance */
