@@ -34,7 +34,7 @@ void ( *signal(int sig, void (*handler)(int)) ) (int);
 
 ```c
 #include <signal.h>
-int kill(pid_t pid, int sig);
+int kill(pid_t pid, int sig);   // retturn 0 on success, or -1 on error
 ```
 
 对于参数pid：
@@ -44,11 +44,11 @@ int kill(pid_t pid, int sig);
 - pid = -1, 会发给所有有权限发送的进程，除了init和调用进程。
 
 
-## Signal Mask
-对于每个进程，内核维护一个signal mask,在这个集合中的信号会被阻塞，直到信号从mask中移除后，才会被送达。（signal mask实际是一个线程级的属性，使用pthread_mask()可配置）。  
+## 信号掩码
+对于每个进程，内核维护一个信号掩码,在这个集合中的信号会被阻塞，直到信号从mask中移除后，才会被送达。（信号掩码实际是一个线程级的属性，使用pthread_mask()可配置）。  
 
-一个信号可能以以下几种方式被加入到signal mask中：
-- 当信号处理函数被调用时，信号会自动加入signal mask，这个是否出现取决于使用sigaction()注册信号处理函数时传入的flag（当包括SA_NODEFER时，在信号处理函数中也会响应信号）。
+一个信号可能以以下几种方式被加入到信号掩码中：
+- 当信号处理函数被调用时，信号会自动加入信号掩码，这个是否出现取决于使用sigaction()注册信号处理函数时传入的flag（当包括SA_NODEFER时，在信号处理函数中也会响应信号）。
 - 使用sigprocmask()
 
 ```c
@@ -56,3 +56,23 @@ int kill(pid_t pid, int sig);
 
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 ```
+
+how参数指定了函数想给掩码带来的变化  
+- SIG_BLOCK 将set指向的信号集内的指定信号添加到信号掩码中
+- SIG_UNBLOCK 将set指向的信号集内的信号从信号掩码中移除
+- SIG_SETMASK 将set指向的信号集赋给信号掩码
+
+
+sigprocmask()使用例子：
+
+```c
+sigset_t blockset, prevMask;
+
+// 这两个函数定义在signal.h中
+sigemptyset(&blockset);
+sigaddset(&blockset, SIGINT);
+
+sigprocmask(SIG_BLOCK, &blockset, &preMask);
+
+```
+
