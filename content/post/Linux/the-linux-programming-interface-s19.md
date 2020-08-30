@@ -76,3 +76,56 @@ sigprocmask(SIG_BLOCK, &blockset, &preMask);
 
 ```
 
+## 处于等待中的信号
+
+某进程接受了一个正在阻塞的信号，会把该信号加到进程的等待信号集中，使用`sigpending()`可以看
+
+```c
+#include <signal.h>
+
+int sigpending(sigset_t *set);
+```
+
+等待信号集仅仅是一个掩码，仅表明一个信号是否发生，而未表明其发生的次数。换言之，如果同一个信号在阻塞状态下发生多次， 那么会将该信号记录在等待信号集中，并在稍后仅传递一次。
+
+## sigaction()
+
+相比signal()， sigaction()系统调用使用更加灵活，可移植性更佳。
+
+```c
+#include <signal.h>
+
+int sigaction(int sig, const struct sigaction *act, struct sigation *oldact);
+
+//  return 0 on success, or -1 on error
+```
+sig参数是想要获取或改变的信号编号  
+
+参数act是指向描述信号新处置的数据结构，如果只想获取现有处置，可以置null。  
+oldact和act类型相同，是只想之前信号处置的数据结构。
+
+sigaction结构体如下：
+
+```c
+struct sigaction {
+    void (*sa_handler)(int);
+    sigset_t sa_mask;
+
+    int sa_flags;
+    void (*sa_restorer)(void);    
+}
+```
+sa_handler: 信号handler  
+sa_mask: handler调用时会阻塞的信号集  
+sa_flags: 控制信号处理过程的各种选项  
+sa_restorer: 仅仅内部使用，用以恢复进程上下文
+
+## 等待信号
+
+```c
+#include <unistd.h>
+
+int pause(void);
+```
+
+调用`pause()`将暂停进程的执行，直到一个进程处理函数中断该调用为止。
