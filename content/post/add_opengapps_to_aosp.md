@@ -125,7 +125,8 @@ LOCAL_CERTIFICATE := platform
 
 - 或者[参考](https://c55jeremy-tech.blogspot.com/2019/04/aosppixel-2-romrom.html)修改frameworks/base/services/core/java/com/android/server/wm/WindowManagerService.java
 删除权限检查的地方
-```
+
+```diff
 --- a/services/core/java/com/android/server/wm/WindowManagerService.java
 +++ b/services/core/java/com/android/server/wm/WindowManagerService.java
 @@ -6001,8 +6001,8 @@ public class WindowManagerService extends IWindowManager.Stub
