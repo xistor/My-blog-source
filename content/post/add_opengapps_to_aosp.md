@@ -13,7 +13,7 @@ github: https://github.com/opengapps/aosp_build
 ## 环境： 
 
 AOSP分支  ：android-10.0.0_r41  
-lunch选项 ：aosp_blueline-userdebug
+lunch选项 ：aosp_blueline-userdebug  
 实机      ：Pixel 3
 
 

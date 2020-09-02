@@ -161,3 +161,21 @@ int pause(void);
 volatile sig_atomic_t flag;
 ```
 `sig_atomic_t`并不是一个C++中那样的原子类型，实际上一般是一个int，在signal.h可以看到定义是`typedef int sig_atomic_t`。因为int类型一般读或写只需要一条机器指令。
+
+
+## 在备选栈中处理信号
+
+当进程的栈增长达到了了限制，内核将为该进程产生SIGSEGC信号，不过，因为栈空间已经耗尽，信号处理函数也就无法被调用，进程就中止了。这就需要使用`signalstack()`来指定备选栈。
+
+```c
+#include <signal.h>
+
+int signalstack(const stack_t *sigstack, stack_t *old_sigstack);
+
+// sigstack为NULL时，仅通过old_sigstack返回上一备选栈的信息
+```
+
+使用步骤：
+1. 分配一块内存作为备选栈。
+2. 调用`signalstack()`告知内核备选栈的存在。
+3. 创建信号处理函数时指定SA_ONSTACK标志，
