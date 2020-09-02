@@ -81,7 +81,64 @@ adb reboot bootloader
 fastboot flashall -w
 ```
 
+## 遇到的问题
+
+1. 刷完之后遇到了这个问题,显示“Android Setup keeps stopping”
+
+![error](/img/add_opengapps_to_aosp/error.jpg)
+
+打开ADB,看log发现是权限问题
+
+```
+WifiService: Permission violation - getScanResults not allowed for uid=10056,
+packageName=com.google.android.setupwizard, reason=java.lang.SecurityException: 
+UID 10056 has no location permission
+
+...
+
+```
+
+解决方法：在vendor/opengapps/build/modules/SetupWizard/Android.mk中添加一句，给SetupWizard加上platform签名
+```
+LOCAL_CERTIFICATE := platform
+```
+加完这个需要`make clean`，重新编译才能生效。
 
 
+2. 上面问题解决后，再次刷人发现PixelLauncher也在挂，依然是权限问题，报错类似这样
 
+```
+03-25 18:04:17.889 750 7019 W ActivityManager: Permission Denial: setShelfHeight() from pid=8517, uid=10012 requires android.permission.STATUS_BAR
+03-25 18:04:17.890 8517 8517 D AndroidRuntime: Shutting down VM
+03-25 18:04:17.891 8517 8517 E AndroidRuntime: FATAL EXCEPTION: main
+03-25 18:04:17.891 8517 8517 E AndroidRuntime: Process: com.google.android.apps.nexuslauncher, PID: 8517
+03-25 18:04:17.891 8517 8517 E AndroidRuntime: java.lang.RuntimeException: Unable to resume activity
+```
+
+由于PixelLauncher貌似没有申请`android.permission.STATUS_BAR`权限，所以给他重新签名也没效果，这个问题找到两种解决方式
+- 如果使用的是userdebug版本的话，可以执行`adb push packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再adb push回原位置。
+
+```xml
+<item name="android.permission.STATUS_BAR" granted="true" flags="0"/>
+<item name="android.permission.MANAGE_ACTIVITY_STACKS" granted="true" flags="0" />
+```
+
+- 或者[参考](https://c55jeremy-tech.blogspot.com/2019/04/aosppixel-2-romrom.html)修改frameworks/base/services/core/java/com/android/server/wm/WindowManagerService.java
+删除权限检查的地方
+```
+--- a/services/core/java/com/android/server/wm/WindowManagerService.java
++++ b/services/core/java/com/android/server/wm/WindowManagerService.java
+@@ -6001,8 +6001,8 @@ public class WindowManagerService extends IWindowManager.Stub
+ 
+     @Override
+     public void setShelfHeight(boolean visible, int shelfHeight) {
+-        mAmInternal.enforceCallerIsRecentsOrHasPermission(android.Manifest.permission.STATUS_BAR,
+-                "setShelfHeight()");
++        //mAmInternal.enforceCallerIsRecentsOrHasPermission(android.Manifest.permission.STATUS_BAR,
++        //        "setShelfHeight()");
+         synchronized (mWindowMap) {
+             getDefaultDisplayContentLocked().getPinnedStackController().setAdjustedForShelf(visible,
+                     shelfHeight)
+
+```
 
