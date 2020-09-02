@@ -85,7 +85,7 @@ fastboot flashall -w
 
 1. 刷完之后遇到了这个问题,显示“Android Setup keeps stopping”
 
-![error](/img/add_opengapps_to_aosp/error.jpg)
+![error](/img/add_opengapps_to_aosp/error.png)
 
 打开ADB,看log发现是权限问题
 
@@ -116,7 +116,7 @@ LOCAL_CERTIFICATE := platform
 ```
 
 由于PixelLauncher貌似没有申请`android.permission.STATUS_BAR`权限，所以给他重新签名也没效果，这个问题找到两种解决方式
-- 如果使用的是userdebug版本的话，可以执行`adb push packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再adb push回原位置。
+- 如果使用的是userdebug版本的话，可以执行`adb push packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再`adb push`回原位置。
 
 ```xml
 <item name="android.permission.STATUS_BAR" granted="true" flags="0"/>
