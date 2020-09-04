@@ -174,8 +174,82 @@ int signalstack(const stack_t *sigstack, stack_t *old_sigstack);
 
 // sigstack为NULL时，仅通过old_sigstack返回上一备选栈的信息
 ```
+其中`stack_t`结构体如下：
+```c
+typedef struct {
+    void *ss_sp; /* Starting address of alternate stack */
+    int ss_flags; /* Flags: SS_ONSTACK, SS_DISABLE */
+    size_t ss_size; /* Size of alternate stack */
+} stack_t;
+```
+
+`SS_ONSTACK` :  如果从old_sigstack中此项被设置了，说明当前正运行在备选栈上。
+`SS_DISABLE` :  如果此项被设置了说明当前没有建立备选栈。
 
 使用步骤：
 1. 分配一块内存作为备选栈。
 2. 调用`signalstack()`告知内核备选栈的存在。
 3. 创建信号处理函数时指定SA_ONSTACK标志，
+
+## SA_SIGINFO Flag
+
+在调用sigaction()时使用SA_SIGINFO可以获得额外的信息，当然handler也得相应的改成下面这个形式：
+
+```c
+void handler(int sig, siginfo_t *siginfo, void *ucontext);
+```
+
+`siginfo`参数里提供了额外信息,handler的函数原型变了，那么前面说的sigaction结构体中的handler函数原型也就不适用了，实际上，<signal.h>中定义的sigaction函数原型是下面这样的，
+
+```c
+struct sigaction {
+    union {
+    void (*sa_handler)(int);
+    void (*sa_sigaction)(int, siginfo_t *, void *);
+    } __sigaction_handler;
+    sigset_t sa_mask;
+    int sa_flags;
+    void (*sa_restorer)(void);
+};
+```
+
+这个siginfo_t长这样：
+```c
+typedef struct {
+    int si_signo; /* Signal number */
+    int si_code; /* Signal code */
+    int si_trapno; /* Trap number for hardware-generated signal
+    (unused on most architectures) */
+    union sigval si_value; /* Accompanying data from sigqueue() */
+    pid_t si_pid; /* Process ID of sending process */
+    uid_t si_uid; /* Real user ID of sender */
+    int si_errno; /* Error number (generally unused) */
+    void *si_addr; /* Address that generated signal
+    (hardware-generated signals only) */
+    int si_overrun; /* Overrun count (Linux 2.6, POSIX timers) */
+    int si_timerid; /* (Kernel-internal) Timer ID
+    (Linux 2.6, POSIX timers) */
+    long si_band; /* Band event (SIGPOLL/SIGIO) */
+    int si_fd; /* File descriptor (SIGPOLL/SIGIO) */
+    int si_status; /* Exit status or signal (SIGCHLD) */
+    clock_t si_utime; /* User CPU time (SIGCHLD) */
+    clock_t si_stime; /* System CPU time (SIGCHLD) */
+} siginfo_t;
+
+```
+
+要定义 _POSIX_C_SOURCE 大于等于199309才能使用
+> 关于_POSIX_C_SOURCE： _POSIX_C_SOURCE 1 makes the functionality from the POSIX.1 standart available _POSIX_C_SOURCE 2 makes the functionality from the POSIX.2 standart available _POSIX_C_SOURCE 199309L makes the functionality from the POSIX.1b standart available
+Higher values like 200809L make more features available. (man 7 feature_test_macros)
+
+
+## 中断和系统调用
+
+当一个阻塞的系统调用被信号打断，在信号处理函数返回后，默认操作是系统调用会报`EINTR`并失败，但大多数时候，我们希望系统调用继续执行，有两种方法：
+1. 将系统调用卸载while循环中：
+
+```c
+while ((cnt = read(fd, buf, BUF_SIZE)) == -1 && errno == EINTR)
+ continue;
+```
+2. 在使用`sigaction()`建立信号处理函数时使用SA_RESTART标志，内核会自动帮忙重启系统调用（有些系统调用不支持）。
