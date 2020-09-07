@@ -116,7 +116,7 @@ LOCAL_CERTIFICATE := platform
 ```
 
 由于PixelLauncher貌似没有申请`android.permission.STATUS_BAR`权限，所以给他重新签名也没效果，这个问题找到两种解决方式
-- 如果使用的是userdebug版本的话，可以执行`adb root`后`adb push packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再`adb push`回原位置。
+- 如果使用的是userdebug版本的话，可以执行`adb root`后`adb pull packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再`adb push`回原位置。
 
 ```xml
 <item name="android.permission.STATUS_BAR" granted="true" flags="0"/>
