@@ -253,3 +253,7 @@ while ((cnt = read(fd, buf, BUF_SIZE)) == -1 && errno == EINTR)
  continue;
 ```
 2. 在使用`sigaction()`建立信号处理函数时使用SA_RESTART标志，内核会自动帮忙重启系统调用（有些系统调用不支持）。
+
+## 传递、处置及处理特殊情况
+
+SIGKILL 信号默认行为是终止一个进程。SIGSTOP信号默认行为是停止一个进程，二者的默认行为无法改变，也无法阻塞。

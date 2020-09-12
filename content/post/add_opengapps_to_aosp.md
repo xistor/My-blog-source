@@ -6,7 +6,7 @@ categories: ["Android"]
 ---
 
 
-自己编译好的AOSP是不包括GMS(Google Mobile Services)的，不太方便玩耍，但是有Open GApps可以用。  
+自己编译好的AOSP是不包括GMS(Google Mobile Services)的，不太方便玩耍，但是有OpenGApps可以用。  
 官网： https://opengapps.org/  
 github: https://github.com/opengapps/aosp_build
 
@@ -16,8 +16,11 @@ AOSP分支  ：android-10.0.0_r41
 lunch选项 ：aosp_blueline-userdebug  
 实机      ：Pixel 3
 
+## 添加驱动
 
-组入步骤按以下走就行。
+首先注意一点，刷入Pixel中需要向AOSP中添加高通的驱动以及谷歌的Vendor image,否则会出现触屏无反应等情况。到[这里](https://developers.google.com/android/drivers)根据设备和Android版本下载对应的二进制包。解压到AOSP源码根目录，并执行两个解压出来的sh文件，出现license时需要输入"I ACCEPT"。文件会被解压到vendor下。  
+
+OpenGApps组入步骤按以下走就行。
 
 ## 安装lunzip & git lfs
 
@@ -27,7 +30,7 @@ sudo apt-get install lunzip git-lfs
 
 ## 修改manifests
 
-修改在AOSP源码根路径下的`.repo/manifest.xml`,在末尾前添加内容,添加后大概类似这样：
+修改在AOSP源码根路径下的`.repo/manifests/default.xml`,在末尾前添加内容,添加后大概类似这样：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -116,7 +119,7 @@ LOCAL_CERTIFICATE := platform
 ```
 
 由于PixelLauncher貌似没有申请`android.permission.STATUS_BAR`权限，所以给他重新签名也没效果，这个问题找到两种解决方式
-- 如果使用的是userdebug版本的话，可以执行`adb root`后`adb push packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再`adb push`回原位置。
+- 如果使用的是userdebug版本的话，可以执行`adb root`后`adb pull packages.xml /data/system/packages.xml`，将package.xml拉到本地修改，在`com.google.android.apps.nexuslauncher`下的`perm`内添加下面两项, 然后再`adb push`回原位置。
 
 ```xml
 <item name="android.permission.STATUS_BAR" granted="true" flags="0"/>
