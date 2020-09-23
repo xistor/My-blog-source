@@ -84,12 +84,12 @@ struct sigevent {
     union sigval sigev_value; /* Value accompanying signal or
     passed to thread function */
     union {
-        pid_t _tid; /* ID of thread to be signaled /
+        pid_t _tid; /* ID of thread to be signaled */
         struct {
         void (*_function) (union sigval);
-        /* Thread notification function */
+                        /* Thread notification function */
         void *_attribute; /* Really 'pthread_attr_t *' */
-    } _sigev_thread;
+        } _sigev_thread;
     } _sigev_un;
 };
 #define sigev_notify_function _sigev_un._sigev_thread._function
@@ -105,3 +105,4 @@ sigev_notify指定通知方法，
 |SIGEV_THREAD|Call sigev_notify_function as start function of new thread|
 |SIGEV_THREAD_ID|Send signal sigev_signo to thread sigev_notify_thread_id|
 
+前两种比较好理解，第三种SIGEV_THREAD
