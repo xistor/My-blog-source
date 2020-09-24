@@ -198,8 +198,12 @@ typedef struct {
 ```c
 void handler(int sig, siginfo_t *siginfo, void *ucontext);
 ```
+三个参数分别为：  
+sig:信号编号  
+siginfo：附加信息结构体，见下方  
+ucontext： 包含kernel保存在用户空间栈内的信号上下文信息，一般来说信号处理函数中用不到这个。  
 
-`siginfo`参数里提供了额外信息,handler的函数原型变了，那么前面说的sigaction结构体中的handler函数原型也就不适用了，实际上，<signal.h>中定义的sigaction函数原型是下面这样的，
+`siginfo`参数里提供了额外信息,handler的函数原型变了，那么前面说的sigaction结构体中的handler函数原型也就不适用了，实际上，<signal.h>中定义的sigaction结构体原型是下面这样的，
 
 ```c
 struct sigaction {
