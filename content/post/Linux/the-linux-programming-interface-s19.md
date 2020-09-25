@@ -307,3 +307,35 @@ union sigval {
 }
 ```
 
+### 处理实时信号
+
+实时信号的处理和标准信号一样，可以使用常规单参数的信号处理函数，也可以使用带有3个参数的信号处理函数。  
+采用了SA_SIGINFO标志后，传给信号处理函数的第二个参数将是一个siginfo_t，内含附加信息。其中si_value字段即sigqueue()中参数
+`union sigval value`指定的伴随数据。
+
+## 等待信号
+
+### sigsuspend()
+
+此系统调用将解除信号阻塞和挂起进程这个两个动作封装成一个操作，以防止在解除信号阻塞和挂起进程之间被信号打断，违背程序本意。
+
+```c
+#include <signal.h>
+int sigsuspend(const sigset_t *mask);
+```
+
+`sigsuspend()`将以mask所指向的信号集来替换进程的信号掩码，然后挂起进程的执行，直到其捕捉到信号，并从信号处理函数中返回，一旦返回，sigsuspend()会将进程信号掩码恢复为调用前的值。
+
+### 同步方式
+
+```c
+#define _POSIX_C_SOURCE 199309
+#include <signal.h>
+
+int sigwaitinfo(const sigset_t *set, siginfo_t *info);
+```
+sigwaitinfo()会挂起进程，直到收到set中的某一信号,返回值为信号编号，info参数如果不为空的话，则会包含额外信息。
+使用sigwaitinfo()前应首先阻塞所有信号(即便信号阻塞，仍然可以使用sigwaitinfo()来获取等待信号)。
+
+## 通过文件描述符获取信号
+
