@@ -122,7 +122,7 @@ int timer_settime(timer_t timerid, int flags, const struct itimerspec *value,
 // Returns 0 on success, or –1 on error
 ```
 
-timerid 是前一步timer_create时返回的那个，flag value和old_value分别上新旧定时器设置值。想要停止定时器，就把value.it_value设为0即可。  
+timerid 是前一步timer_create时返回的那个，flag指定为0则参数value.it_value value理解为相对timer_settime调用时的时间，flag指定为TIMER_ABSTIME，则将参数value.it_value value理解为绝对时间（从时钟0点开始。和old_value分别上新旧定时器设置值。想要停止定时器，就把value.it_value设为0即可。  
 
 ### 删除定时器
 
@@ -226,3 +226,4 @@ int timerfd_settime(int fd, int flags, const struct itimerspec *new_value, struc
  
 int timerfd_gettime(int fd, struct itimerspec *curr_value);
 ```
+ timerfd_settime()调用之后，我们就可以使用` read(fd, &numExp, sizeof(uint64_t))`去读定时器是否到期,读出的是一个64位无符号数，代表的是到期次数。
