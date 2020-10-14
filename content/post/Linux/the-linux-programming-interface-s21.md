@@ -1,5 +1,5 @@
 ---
-title: "Linux/Unix系统编程手册-笔记21. 进程"
+title: "Linux/Unix系统编程手册-笔记21. 进程的创建、终止"
 date: 2020-09-25T18:21:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
@@ -142,3 +142,85 @@ while (waitpid(-1, NULL, WNOHANG) > 0)
 
 
 父进程将SIGCHLD设置为SIG_IGN,会使子进程立即终止，而不是转为僵尸进程。类似的在sigaction()中使用SA_NOCLDWAIT flag也可以实现同样的效果。
+
+## Exercise
+
+2. 在父进程终止之后。
+
+4. make_zombie.c 使用信号替代sleep()
+
+```c
+#include <signal.h>
+#include <libgen.h>             /* For basename() declaration */
+#include "tlpi_hdr.h"
+
+#define CMD_SIZE 200
+#define SYNC_SIG SIGUSR1                /* Synchronization signal */
+
+static void             /* Signal handler - does nothing but return */
+handler(int sig)
+{
+}
+
+int
+main(int argc, char *argv[])
+{
+    char cmd[CMD_SIZE];
+    pid_t childPid;
+    sigset_t blockMask, origMask, emptyMask;
+    struct sigaction sa;
+
+    setbuf(stdout, NULL);       /* Disable buffering of stdout */
+
+    sigemptyset(&blockMask);
+    sigaddset(&blockMask, SYNC_SIG);    /* Block signal */
+    if (sigprocmask(SIG_BLOCK, &blockMask, &origMask) == -1)
+        errExit("sigprocmask");
+
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sa.sa_handler = handler;
+    if (sigaction(SYNC_SIG, &sa, NULL) == -1)
+        errExit("sigaction");
+
+    printf("Parent PID=%ld\n", (long) getpid());
+
+    switch (childPid = fork()) {
+    case -1:
+        errExit("fork");
+
+    case 0:     /* Child: immediately exits to become zombie */
+        printf("Child (PID=%ld) exiting!!\n", (long) getpid());
+
+        sleep(3);
+        if (kill(getppid(), SYNC_SIG) == -1)
+            errExit("kill");
+
+        _exit(EXIT_SUCCESS);
+
+    default:    /* Parent */
+
+        sigemptyset(&emptyMask);
+        if (sigsuspend(&emptyMask) == -1 && errno != EINTR)
+            errExit("sigsuspend");
+
+        printf("got signal\n");
+
+        if (sigprocmask(SIG_SETMASK, &origMask, NULL) == -1)
+            errExit("sigprocmask");
+
+        snprintf(cmd, CMD_SIZE, "ps | grep %s", basename(argv[0]));
+        system(cmd);            /* View zombie child */
+
+        /* Now send the "sure kill" signal to the zombie */
+
+        if (kill(childPid, SIGKILL) == -1)
+            errMsg("kill");
+        sleep(3);               /* Give child a chance to react to signal */
+        printf("After sending SIGKILL to zombie (PID=%ld):\n", (long) childPid);
+        system(cmd);            /* View zombie child again */
+
+        exit(EXIT_SUCCESS);
+    }
+}
+```
