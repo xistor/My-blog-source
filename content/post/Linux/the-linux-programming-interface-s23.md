@@ -10,6 +10,9 @@ categories: ["Linux系统编程手册阅读"]
 - 共享信息简单快速
 - 线程创建速度快
 
+线程在进程中执行时的内存布局如下图：
+![线程在进程内运行时内存布局](/img/the-linux-programming-interface-s23/four_threads_in_a_process.png)
+
 线程之间共享的信息：
 
 - 进程ID和父进程ID
@@ -31,4 +34,12 @@ categories: ["Linux系统编程手册阅读"]
 
 - 线程id
 - 信号mask
-- 线程
+- 线程相关的数据
+- 备用信号栈
+- errno 变量
+- 浮点数环境（fenv(3)）
+- 实时调度策略和优先级
+- CPU affinity
+- capabilities
+- 栈
+
