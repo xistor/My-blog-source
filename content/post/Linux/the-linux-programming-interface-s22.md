@@ -44,7 +44,7 @@ int execl(const char * pathname , const char * arg , ...
 
 ## exec() 与信号
 
-exec()在执行时会将现有进程已设的信号处置重置为SIG_DFL。面对所有其他信号（即将处置置为SIG_IGN或SIG_DFL的信号）的处置则保持不变。不过遭忽略的SIGCHLD信号属于特例，Linux在执行exec()后将保持其忽略状态。而其他一些UNIX实现将其重置为SIG_DFL。
+exec()在执行时会将现有进程已设的信号处置重置为SIG_DFL。而对所有其他信号（即将处置置为SIG_IGN或SIG_DFL的信号）的处置则保持不变。不过遭忽略的SIGCHLD信号属于特例，Linux在执行exec()后将保持其忽略状态。而其他一些UNIX实现将其重置为SIG_DFL。
 
 ## system()
 
@@ -66,4 +66,23 @@ system()实现的时候需要考虑对信号的正确处理，首先是SIGCHLD,�
 ![执行system("sleep 20")期间的进程情况](/img/the-linux-programming-interface-s21/overview.png)
 对于哪个进程应该收到SIGINT和SIGQUIT，SUSv3规定：  
 - 调用进程在执行命令期间应忽略SIGINT和SIGQUIT信号
-- 子进程将对一处理信号的处置重置为默认值，而对其他信号的处置则保持不变。
+- 子进程将对上述两信号的处置重置为默认值，而对其他信号的处置则保持不变。
+遵守这样的规定后，表现出来的现象是在system()执行时，使用ctrl+c或ctrl+\将只会杀掉system()的子进程，应用程序将会继续运行。
+
+## clone()
+
+```c
+#define _GNU_SOURCE
+#include <sched.h>
+
+int clone(int (*func)(void *), void *child_stack, int flags, void *func_arg, ...
+                 /* pid_t *ptid, struct user_desc *tls, pid_t *ctid */ );
+
+// return process ID of child on success, or -1 on error
+```
+
+clone()和fork()的不同之处
+- clone()生成的子进程继续运行时不以调用处为起点，转而去调用以参数func所指定的函数。func的参数由func_arg指定。
+- 子程序可能和父进程共享内存，所以调用者需要分配一块适当大小的栈供子进程使用, 栈向下增长，child_stack指向内存块的高端。
+- clone()的参数flags的低字节存放着子进程的终止信号。可以指定子进程终止时父进程收到的信号（fork只能是SIGCHLD。
+- flags剩余字节存放了掩码，用于控制clone()的操作，比如共享文件描述符、共享对信号的处置等。
