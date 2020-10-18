@@ -1,6 +1,6 @@
 ---
 title: "Linux/Unix系统编程手册-笔记23. 线程"
-date: 2020-10-12T18:30:00+08:00
+date: 2020-10-18T18:30:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
 ---
