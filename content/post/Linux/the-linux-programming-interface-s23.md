@@ -120,3 +120,72 @@ int pthread_detach(pthread_t thread);
 
 但是当其他线程调用了exit(), 或主进程执行return时，即使分离的线程也会收到影响，进程的所有线程将会立即停止。
 
+## 线程的同步
+
+因为线程之间能够共享全局变量，所以就存在竞争问题，为了安全的共享变量，不同线程之间需要同步操作。
+
+### 互斥量
+
+互斥量pthread_mutex_t使用前必须初始化
+
+```cpp
+#include <pthrad.h>
+
+// 静态互斥量的初始化
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
+
+// 动态互斥量的初始化
+
+int func() {
+  pthread_mutex_t mtx;
+  pthread_mutexattr_t mtxAttr;
+
+  int s, type;
+
+  s = pthread_mutexattr_init(&mtxAttr);
+  if (s != 0)
+    return;
+  // 设置属性
+  s = pthread_mutexattr_settype(&mtxAttr, PTHREAD_MUTEX_ERRORCHECK);
+
+  if (s ！= 0)
+    return;
+  s = pthread_mutex_init(mtx, &mtxAttr);
+
+  pthread_mutex_init(mtx, );
+
+}
+```
+
+
+对互斥量加锁和解锁
+
+```c
+#include <pthrad.h>
+
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+// Return 0 on success, or a positive error number on error
+```
+
+如果互斥量之前未锁定，执行锁定操作将会立即返回，否则将会一直阻塞到互斥量被解锁。  
+
+当不再需要互斥量时，应使用pthread_mutex_destory()将其销毁。
+
+```c
+#include <pthread.h>
+
+int pthread_mutex_destory(pthread_mutex_t *mutex);
+
+// Return 0 on success, or a positive error number on error
+```
+
+互斥量的属性之一 类型：
+
+- PTHREAD_MUTEX_NORMAL: 该互斥量不具有死锁自检功能，对与已经锁住的互斥量，再次加锁会导致不确定结果。（linux下会成功）
+- PTHREAD_MUTEX_ERRORCHECK: 会对加解锁过程做检查。
+- PTHREAD_MUTEX_RECURSIVE: 递归维护一个锁计数器，每次加锁会+1，每次解锁会-1，当计数为0时才会释放该互斥量。解锁时和上一个类型一样，若互斥量处于未锁定状态或已由其他线程锁定， 操作都会失败。  
+还有其他类型，不赘述。
