@@ -189,3 +189,37 @@ int pthread_mutex_destory(pthread_mutex_t *mutex);
 - PTHREAD_MUTEX_ERRORCHECK: 会对加解锁过程做检查。
 - PTHREAD_MUTEX_RECURSIVE: 递归维护一个锁计数器，每次加锁会+1，每次解锁会-1，当计数为0时才会释放该互斥量。解锁时和上一个类型一样，若互斥量处于未锁定状态或已由其他线程锁定， 操作都会失败。  
 还有其他类型，不赘述。
+
+
+### 条件变量
+
+条件变量可以在共享变量状态改变的时候通知其他线程，其他线程可以等待通知。
+
+条件变量初始化
+
+```c
+#include <pthread.h>
+
+// 静态条件变量初始化
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+// 动态条件变量初始化
+
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+// Returns 0 on success, or a positive error number on error
+```
+
+通知和等待条件变量操作
+
+```c
+#include <pthread.h>
+int pthread_cond_signal(pthread_cond_t *cond);
+int pthread_cond_broadcast(pthread_cond_t *cond);
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+  const struct timespec *abstime);
+// All return 0 on success, or a positive error number on error
+```
+
+`pthread_cond_signal()`和`pthread_cond_broadcast()`区别在于前者只保证通知至少一个阻塞在`pthread_cond_wait()`的线程，后者会通知所有阻塞的线程。除非只有一个阻塞线程需要唤醒，比如所有线程都执行同一操作，只需要唤醒一个线程做就行。其他情况下一般使用`pthread_cond_broadcast()`。
+
