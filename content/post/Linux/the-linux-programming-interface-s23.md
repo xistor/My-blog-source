@@ -221,5 +221,39 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 // All return 0 on success, or a positive error number on error
 ```
 
-`pthread_cond_signal()`和`pthread_cond_broadcast()`区别在于前者只保证通知至少一个阻塞在`pthread_cond_wait()`的线程，后者会通知所有阻塞的线程。除非只有一个阻塞线程需要唤醒，比如所有线程都执行同一操作，只需要唤醒一个线程做就行。其他情况下一般使用`pthread_cond_broadcast()`。
+`pthread_cond_signal()`和`pthread_cond_broadcast()`区别在于前者只保证通知至少一个阻塞在`pthread_cond_wait()`的线程，后者会通知所有阻塞的线程。除非只有一个阻塞线程需要唤醒，比如所有线程都执行同一操作，只需要唤醒一个线程做就行。使用`pthread_cond_broadcast()`一般会得到正确结果。**`pthread_cond_signal()`通知的时候若没有线程在等待，就会被忽略。**  
+
+从`pthread_cond_wait()`的参数就能看出，它需要和mutex配合使用，在其内部对mutex会按顺序做如下操作：
+1. 释放mutex;
+2. 阻塞当前调用线程，直到其他线程通知条件变量改变
+3. 再次获取mutex
+
+`pthread_cond_wait()`传入的mutex就是用于控制共享变量访问时用到的mutex, 为什么需要这个mutex呢？ 这个mutex就是为了保护共享变量的，这个共享变量的作用类似“状态(state)”或“标志(flag)”，比如下面这段程序中的`avail`。在检查或修改共享变量之前都需要拥有mutex。
+首先由于`pthread_cond_wait()`执行开始会释放mutex，所以我们再调用它之前需要获取到mutex, 然后，在`pthread_cond_wait()`return 前会relock mutex, 所以在对共享变量操作完毕后需要释放mutex。
+
+```c
+pthread_mutex_lock(&mtx);
+
+while (avail == 0) { /* Wait for something to consume */
+  pthread_cond_wait(&cond, &mtx);
+}
+
+while (avail > 0) { /* Consume all available units */
+/* Do something with produced unit */
+  avail--;
+}
+
+pthread_mutex_unlock(&mtx);
+```
+
+
+
+使用栗子：
+
+```c
+// 声明全局互斥量和条件变量
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+static int avail = 0;
+```
 
