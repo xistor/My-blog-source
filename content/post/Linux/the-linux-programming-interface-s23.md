@@ -228,10 +228,40 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 2. 阻塞当前调用线程，直到其他线程通知条件变量改变
 3. 再次获取mutex
 
-`pthread_cond_wait()`传入的mutex就是用于控制共享变量访问时用到的mutex, 为什么需要这个mutex呢？ 这个mutex就是为了保护共享变量的，这个共享变量的作用类似“状态(state)”或“标志(flag)”，比如下面这段程序中的`avail`。在检查或修改共享变量之前都需要拥有mutex。
-首先由于`pthread_cond_wait()`执行开始会释放mutex，所以我们再调用它之前需要获取到mutex, 然后，在`pthread_cond_wait()`return 前会relock mutex, 所以在对共享变量操作完毕后需要释放mutex。
+`pthread_cond_wait()`传入的mutex就是用于控制共享变量访问时用到的mutex, 为什么需要这个mutex呢？ 这个mutex就是为了保护共享变量的，这个共享变量的作用类似“状态(state)”或“标志(flag)”，比如下面这段程序中的`avail`。在检查或修改共享变量之前都需要拥有mutex。这样设计的原因是因为条件变量和互斥量之间存在着天然的关系：
+1. 线程在准备检查共享变量状态时锁定互斥量。
+2. 检查共享变量状态
+3. 如果共享变量未处于预期状态，线程应在等待条件变量并进入休眠前解锁互斥量（以便其他线程能访问该共享变量）
+4. 当线程因为条件变量的通知而被再度唤醒时，必须对互斥量再次加锁，因为在典型情况下，线程会立即访问共享变量。
+
+pthread_cond_wait()会自动执行最后两步中对互斥量的解锁和加锁动作，并且第3步的互斥量释放和陷入休眠属于一个原子操作。在这个地方一开始我还存在困扰，我想如果在生产者发条件变量信号之后，消费者才陷入等待，岂不是会丢掉信号。其实我看错了，因为消费者陷入等待之前会首先判断共享变量也就是状态是否满足，不满足要求才会陷入等待。而前述情况既然发了条件变量信号，就说明`avail`已经`++`了，是不会等待的。所以是我之前看的太局部，没有考虑到条件变量是为线程间访问临界资源服务的。  
+
+使用`while()`而不是`if()`来检查判断条件是因为从pthread_cond_wait()返回后需要重新检查判断条件，这是因为：
+- 其他线程可能会率先醒来，改变了判断条件的状态。
+- 条件变量信号意味着“可能有事情去做”，而不是“一定有事情去做”，接收信号的线程可以通过再次检查条件来确定是否真的需要做什么。
+- 可能出现虚假唤醒的情况
+
+
 
 ```c
+
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+static int avail = 0;
+
+// 生产者
+pthread_mutex_lock(&mtx);
+
+avail++;
+
+pthread_mutex_unlock(&mtx);
+
+pthread_cond_signal(&cond);
+
+```
+
+```c
+// 消费者
 pthread_mutex_lock(&mtx);
 
 while (avail == 0) { /* Wait for something to consume */
@@ -248,12 +278,5 @@ pthread_mutex_unlock(&mtx);
 
 
 
-使用栗子：
 
-```c
-// 声明全局互斥量和条件变量
-static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-static int avail = 0;
-```
 
