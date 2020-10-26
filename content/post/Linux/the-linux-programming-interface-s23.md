@@ -277,6 +277,116 @@ pthread_mutex_unlock(&mtx);
 ```
 
 
+## 线程安全
 
+一个线程安全的函数允许同时被多个线程调用，若一个函数中使用了全局变量，通常需要互斥量来同步以保证线程安全。不用互斥量就可以被多线程安全调用的函数称为可重入函数，可重入函数中不会用到全局和静态变量。  
 
+### One-time 初始化
 
+有时候，可能有一个函数会被每一个线程调用，但只希望第一次调用的时候执行。
+
+```c
+#include <pthread.h>
+
+pthread_once_t once_control = PTHREAD_ONCE_INIT;
+
+int pthread_once(pthread_once_t *once_control, void (*init)(void));
+
+// return 0 on success, or a positive error number on error
+```
+
+使用栗子：
+
+```cpp
+#include <stdio.h>                                                              
+#include <errno.h>                                                              
+#include <pthread.h>                                                            
+                                                                                
+#define threads 3                                                               
+                                                                                
+int             once_counter=0;                                                 
+pthread_once_t  once_control = PTHREAD_ONCE_INIT;                               
+                                                                                
+void  once_fn(void)                                                             
+{                                                                               
+  puts("in once_fn");                                                            
+  once_counter++;                                                                
+}                                                                               
+                                                                                
+void *threadfunc(void *parm)                                         
+{                                                                               
+  int        status;                                                             
+  int        threadnum;                                                          
+  int        *tnum;                                                              
+                                                                                
+  tnum = parm;                                                                   
+  threadnum = *tnum;                                                             
+                                                                                
+  printf("Thread %d executing\n", threadnum);                                    
+                                                                                
+  status = pthread_once(&once_control, once_fn);                                 
+  if ( status <  0)                                                              
+    printf("pthread_once failed, thread %d, errno=%d\n", threadnum,             
+                                                            errno);             
+                                                                                
+  pthread_exit((void *)0);                                                     
+}                                                                               
+                                                                                
+main() {                                                                        
+  int          status;                                                           
+  int          i;                                                                
+  int          threadparm[threads];                                              
+  pthread_t    threadid[threads];                                                
+  int          thread_stat[threads];                                             
+                                                                                
+  for (i=0; i<threads; i++) {                                                    
+    threadparm[i] = i+1;                                                        
+    status = pthread_create( &threadid[i],                                      
+                              NULL,                                              
+                              threadfunc,                                        
+                              (void *)&threadparm[i]);                           
+    if ( status <  0) {                                                         
+        printf("pthread_create failed, errno=%d", errno);                        
+        exit(2);                                                                 
+    }                                                                           
+  }                                                                             
+                                                                                
+  for ( i=0; i<threads; i++) {                                                   
+    status = pthread_join( threadid[i], (void *)&thread_stat[i]);               
+    if ( status <  0)                                                           
+        printf("pthread_join failed, thread %d, errno=%d\n", i+1, errno);        
+                                                                                
+    if (thread_stat[i] != 0)                                                    
+      printf("bad thread status, thread %d, status=%d\n", i+1,                
+                                                    thread_stat[i]);             
+  }                                                                             
+                                                                                
+  if (once_counter != 1)                                                         
+    printf("once_fn did not get control once, counter=%d",once_counter);         
+  exit(0);                                                                       
+}                                                                               
+
+```
+
+```
+执行结果：
+
+Thread 1 executing
+in once_fn
+Thread 2 executing
+Thread 3 executing
+```
+
+### 线程特有数据
+
+线程特有数据允许每个调用函数的线程持有一份变量的拷贝。  
+
+为了区分不同函数之间的线程特有数据，需要创建一个key来区分它们。记住，这个key是用来区分函数的，而不是线程的。
+
+```c
+#include <pthread.h>
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void *));
+// Returns 0 on success, or a positive error number on error
+```
+
+也正是因为key是用来区分函数的，所以返回的key可以被进程中的所有线程使用，指向的是一个全局变量。
