@@ -461,5 +461,8 @@ pthread_setcancelstate()参数state可选状态如下：
 void pthread_cleanup_push(void (*routine)(void*), void *arg);
 void pthread_cleanup_pop(int execute);
 ```
-这两个函数很明显用来添加和删除handler。当线程执行到最后退出的话，是不需要调用清理函数的，所以要在适当的时候将handler从栈中pop出来。
+清理函数是以栈的形式来管理的，这两个函数很明显用来添加和删除handler，每个push都应该有一个对应的pop。当线程执行到最后退出的话，是不需要调用清理函数的，所以要在适当的时候将handler从栈中pop出来。若`pthread_cleanup_pop()`参数`execute`不为0，弹出的栈顶处理函数的同时会执行清理函数。线程因调用pthread_exit()终止的时候，会自动执行尚未从清理函数栈中弹出的清理函数，线程正常返回(return)时不会执行s清理函数。
 
+### 异步取消
+
+如果设定线程可异步取消时，可以在任何时点将其取消，取消动作不会拖延到下一个取消点才执行。异步取消时虽然清理函数可以执行，但是无法得知线程当前执行到哪一步。所以原则上可异步取消的线程不应该分配资源。
