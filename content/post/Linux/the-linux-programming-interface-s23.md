@@ -403,4 +403,63 @@ void *pthread_getspecific(pthread_key_t key);
 `pthread_setspecific()`的参数`key`是调用`pthread_key_create()`分配的key,`value`通常指向一块由调用者分配的内存，线程终止时，会自动调用`create`时指定的`destructor()`去释放`value`指向的内存。   
 下图是线程特有数据的实现结构，如图，Pthread为每个线程维护一个指针数组，指针数组内每一个成员都指向一个函数的特有数据。key1所对应的函数的特有数据数据保存在tsd[1]指向的内存中。  
 ![线程特有数据的实现结构](/img/the-linux-programming-interface-s23/tsd.png)
-其实根据上面这个图，之前对key的总结有点分歧，key是用来区分函数的，但并不代表一个函数内只能用一个key，一个函数中可以创建和指定多个key。但上限有限，linux中key最多可以1024个。通常只用一个key就可以了，将函数要用的多个特有数据值放到一个结构中。
+其实根据上面这个图，之前对key的总结有点补充，key是用来区分函数的，但并不代表一个函数内只能用一个key，一个函数中可以创建和指定多个key。但上限有限，linux中key最多可以1024个。通常只用一个key就可以了，将函数要用的多个特有数据值放到一个结构中。
+
+### 线程局部存储(thread-local Storage)
+
+线程局部存储比线程特有数据使用起来更加简单,只要在声明全局或静态变量的时候加上__thread说明符，每个线程就会持有一份此变量的拷贝：
+
+```c
+static __thread buf[MAX_ERROR_LEN];
+```
+
+## 线程取消
+
+调用下面系统调用可以请求取消掉指定线程(在其他线程中调用)。
+
+```c
+#include <pthread.h>
+int pthread_cancel(pthread_t thread);
+// Returns 0 on success, or a positive error number on error
+```
+
+### 线程取消状态
+调用如下接口，可以控制本线程对取消请求的应对方式。
+
+```c
+#include <pthread.h>
+int pthread_setcancelstate(int state, int *oldstate);
+int pthread_setcanceltype(int type, int *oldtype);
+// Both return 0 on success, or a positive error number on error
+```
+
+pthread_setcancelstate()参数state可选状态如下：
+- PTHREAD_CANCEL_DISABLE: 线程不可取消，取消状态被挂起，直到状态改为enable
+- PTHREAD_CANCEL_ENABLE: 线程可取消
+
+如果线程是可取消的，那线程取消的请求结果由可取消类型决定
+- PTHREAD_CANCEL_ASYNCHRONOUS：线程可以在任何时间被取消（不一定是马上被取消）。
+- PTHREAD_CANCEL_DEFERRED：请求被挂起，直到下一个取消点。
+
+### 取消点
+
+仅当取消操作安全时才应取消线程。pthreads 标准指定了几个取消点，其中包括：
+
+- 通过 pthread_testcancel 调用以编程方式建立线程取消点。如果当前有一个取消请求在等待，线程就会取消。
+- 线程等待 pthread_cond_wait 或 pthread_cond_timedwait(3C) 中的特定条件出现。
+- 线程在 pthread_join()等待其他线程结束。
+- 被 sigwait(2) 阻塞的线程。
+- 一些标准的库调用。通常这些调用可使其线程阻塞。有关列表，请参见 cancellation(5) 手册页。
+
+
+线程取消的危险性主要与未释放共享资源有关，取消时须十分注意，否则可能导致死锁。为了避免这些，取消点因此选在线程阻塞的时候，减小持有资源的可能，除此之外还可以使用cleanup handler
+
+### cleanup handlers
+
+```c
+#include <pthread.h>
+void pthread_cleanup_push(void (*routine)(void*), void *arg);
+void pthread_cleanup_pop(int execute);
+```
+这两个函数很明显用来添加和删除handler。当线程执行到最后退出的话，是不需要调用清理函数的，所以要在适当的时候将handler从栈中pop出来。
+
