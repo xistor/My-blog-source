@@ -466,3 +466,78 @@ void pthread_cleanup_pop(int execute);
 ### 异步取消
 
 如果设定线程可异步取消时，可以在任何时点将其取消，取消动作不会拖延到下一个取消点才执行。异步取消时虽然清理函数可以执行，但是无法得知线程当前执行到哪一步。所以原则上可异步取消的线程不应该分配资源。
+
+## 线程细节
+
+### 栈
+
+每个线程有自己的固定大小的栈，以下函数可以修改：
+
+```c
+#include <pthread.h>
+// 可以更改栈大小
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+// 可以更该栈地址和栈大小
+int pthread_attr_setstack(pthread_attr_t *attr, void *stackaddr, size_t stacksize);
+```
+
+使用栗子如下，可见上面两个函数是将栈size或地址写到属性中，在创建线程的时候再使用指定属性创建线程。
+
+```c
+#include <stdio.h>                                                              
+#include <pthread.h>                                                            
+                                                                                
+void *thread1(void *arg)                                                        
+{                                                                               
+   printf("hello from the thread\n");                                           
+   pthread_exit(NULL);                                                          
+}                                                                               
+                                                                                
+int main()                                                                      
+{                                                                               
+   int            rc, stat;                                                     
+   size_t         s1;                                                           
+   pthread_attr_t attr;                                                         
+   pthread_t      thid;                                                         
+                                                                                
+   rc = pthread_attr_init(&attr);                                               
+   if (rc == -1) {                                                              
+      perror("error in pthread_attr_init");                                     
+      exit(1);                                                                  
+   }                                                                            
+                                                                                
+   s1 = 4096;                                                                   
+   rc = pthread_attr_setstacksize(&attr, s1);                                   
+   if (rc == -1) {                                                              
+      perror("error in pthread_attr_setstacksize");                             
+      exit(2);                                                                  
+   }                                                                            
+                                                                                
+   rc = pthread_create(&thid, &attr, thread1, NULL);                            
+   if (rc == -1) {                                                              
+      perror("error in pthread_create");                                        
+      exit(3);                                                                  
+   }                                                                            
+                                                                                
+   rc = pthread_join(thid, (void *)&stat);                                      
+   exit(0);                                                                     
+}
+
+```
+
+### 线程和信号
+
+信号的接收：
+
+- 信号动作（signal action）是进程级的，如果一个默认动作是`stop`或`terminate`的信号送达任意一个线程，那么进程中的所有线程都会`stop`或`terminate`。
+- 信号处置是进程级的，进程中所有线程对于一个信号共享同样的处置，如果一个线程使用`sigaction()`为信号创建了信号处理函数，当信号到达时，信号处理函数可能在任一进程中执行。
+- 在以下情况下信号会被发给特定的线程：
+  1. 由于线程执行的硬件指令异常产生的信号(SIGBUS, SIGFPE, SIGILL, and SIGSEGV),只有产生异常的线程收到并处理。
+  2. 写一个被破坏的管道时产生的SIGPIPE信号。
+  3. pthread_kill() or pthread_sigqueue()发送给指定线程。
+- 当信号被发送到一个多线程进程时，内核会任意选择一个线程，把信号发给它，并在那个线程中调用线程处理函数。
+- signal mask是线程级的，线程的信号掩码继承自创建它的线程，每个线程可以使用`pthread_sigmask()`单独block或unblock某个信号。
+- 内核为进程维护一个挂起信号表，也为每个线程维护一个挂起信号表，sigpending()返回的线程正在挂起的信号和进程正在挂起的信号的并集。
+- 当信号处理函数打断了pthread_mutex_lock()和pthread_cond_wait()的调用，会自动重新执行调用。
+- 备用信号栈是线程级的。
+
