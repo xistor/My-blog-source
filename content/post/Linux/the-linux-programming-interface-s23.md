@@ -541,3 +541,230 @@ int main()
 - 当信号处理函数打断了pthread_mutex_lock()和pthread_cond_wait()的调用，会自动重新执行调用。
 - 备用信号栈是线程级的。
 
+### 线程和进程控制
+
+- 当某一个线程调用`exec()`后，调用程序会被完全替换掉。线程的特有数据析构函数和清理处理函数都不会被调用。
+- 当多线程程序调用`fork()`后，只有调用线程会被复制到子进程中。其他线程都会消失，它们的清理函数也不会被调用，这就带来一些问题：
+  1. 除了调用线程，全局变量包括互斥量等也会被复制进子进程，这就导致如果在`fork()`的时候，其他线程锁了一个互斥量，`fork()`完毕后，它消失了..那个互斥量就会被永远的锁住。
+  2. 因为清理函数不会被调用，所以还有可能导致内存泄漏。  
+基于以上原因，在多线程程序中使用`fork()`最好马上调用`exec()`。如果不能，Pthread提供了pthread_atfork()接口
+
+```c
+#include <pthread.h>
+
+int pthread_atfork(void (*prepare_func)(void), void (*parent_func)(void), void (*child_func)(void));
+```
+prepare_func会被加入一个函数列表中，在子进程创建之前，自动按照注册顺序反序执行。parent_func和child_func在fork()返回之前，分别在父进程和子进程中按注册顺序执行。
+下面是栗子:
+```cpp
+#define _UNIX03_THREADS 1                                                       
+
+#include <pthread.h>                                                            
+#include <stdio.h>                                                              
+#include <unistd.h>   
+#include <fcntl.h>   
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+#include <errno.h>                                                              
+                                                                                
+char fn_c[] = "childq.out";
+char fn_p[] = "parentside.out";
+int  fd_c;
+int  fd_p;
+
+void prep1(void)  {
+  char buff[80] = "prep1\n";
+  printf("prep1\n");
+  write(4,buff,sizeof(buff));
+}
+
+void prep2(void)  {
+  char buff[80] = "prep2\n";
+  printf("prep2\n");
+  write(4,buff,sizeof(buff));
+}
+
+void prep3(void)  {
+  char buff[80] = "prep3\n";
+  printf("prep3\n");
+  write(4,buff,sizeof(buff));
+}
+
+                                                                               
+void parent1(void)  {
+  char buff[80] = "parent1\n";
+  printf("parent1\n");
+  write(4,buff,sizeof(buff));
+}
+
+void parent2(void)  {
+  char buff[80] = "parent2\n";
+  printf("parent2\n");
+  write(4,buff,sizeof(buff));
+}
+
+void parent3(void)  {
+  char buff[80] = "parent3\n";
+  printf("parent3\n");
+  write(4,buff,sizeof(buff));
+}
+
+
+void child1(void)  {
+  char buff[80] = "child1\n";
+  printf("child1\n");
+  write(3,buff,sizeof(buff));
+}
+
+void child2(void)  {
+  char buff[80] = "child2\n";
+  printf("child2\n");
+  write(3,buff,sizeof(buff));
+}
+
+void child3(void)  {
+  char buff[80] = "child3\n";
+  printf("child3\n");
+  write(3,buff,sizeof(buff));
+}
+
+void *thread1(void *arg) {
+                                                                                
+  printf("Thread1: Hello from the thread.\n");
+
+} 
+                                                                                
+
+int main(void)
+{                                                                        
+  pthread_t thid;
+  int       rc, ret;
+  pid_t     pid;
+  int       status;
+  char   header[30] = "Called Child Handlers\n";
+
+  if (pthread_create(&thid, NULL, thread1, NULL) != 0) {
+    perror("pthread_create() error");                                           
+    exit(3);                                                                    
+  }
+
+  if (pthread_join(thid, NULL) != 0) {
+    perror("pthread_join() error");
+    exit(5);                                                                    
+  } else {
+    printf("IPT: pthread_join success!  Thread 1 should be finished now.\n");
+    printf("IPT: Prepare to fork!!!\n");
+  }
+ 
+
+  /*-----------------------------------------*/
+  /*|  Start atfork handler calls in parent  */
+  /*-----------------------------------------*/
+  /* Register call 1 */
+  rc = pthread_atfork(&prep1, &parent2, &child3);
+  if (rc != 0) {
+     perror("IPT: pthread_atfork() error [Call #1]"); 
+     printf("  rc= %d, errno: %d", rc, errno); 
+  }
+ 
+
+  /* Register call 2 */
+  rc = pthread_atfork(&prep2, &parent3, &child1);
+  if (rc != 0) {
+     perror("IPT: pthread_atfork() error [Call #2]"); 
+     printf("  rc= %d, errno: %d", rc, errno); 
+  }
+  
+
+  /* Register call 3 */
+  rc = pthread_atfork(&prep3, &parent1, NULL);
+  if (rc != 0) {
+     perror("IPT: pthread_atfork() error [Call #3]"); 
+     printf("  rc= %d, errno: %d", rc, errno); 
+  }
+
+  /* Create output files to expose the execution of fork handlers. */
+  if ((fd_c = creat(fn_c, S_IWUSR)) < 0)
+    perror("creat() error");
+  else
+    printf("Created %s and assigned fd= %d\n", fn_c, fd_c);
+  if ((ret = write(fd_c,header,30)) == -1)
+    perror("write() error");
+  else
+    printf("Write() wrote %d bytes in %s\n", ret, fn_c);
+
+  if ((fd_p = creat(fn_p, S_IWUSR)) < 0)
+    perror("creat() error");
+  else
+    printf("Created %s and assigned fd= %d\n", fn_p, fd_p);
+  if ((ret = write(fd_p,header,30)) == -1)
+    perror("write() error");
+  else
+    printf("Write() wrote %d bytes in %s\n", ret, fn_p);
+
+  pid = fork();
+
+  if (pid < 0) 
+    perror("IPT: fork() error"); 
+  else {
+    if (pid == 0) {
+      printf("Child: I am the child!\n");
+      printf("Child: My PID= %d, parent= %d\n", (int)getpid(), 
+              (int)getppid());
+      exit(0);
+
+    } else {
+      printf("Parent: I am the parent!\n");
+      printf("Parent: My PID= %d, child PID= %d\n", (int)getpid(), (int)pid);
+
+      if (wait(&status) == -1)  
+        perror("Parent: wait() error");
+      else if (WIFEXITED(status))
+             printf("Child exited with status: %d\n",WEXITSTATUS(status)); 
+           else
+             printf("Child did not exit successfully\n");
+
+    close(fd_c);
+    close(fd_p);
+
+    }
+  }
+}
+
+```
+
+```
+终端输出：
+Thread1: Hello from the thread.
+IPT: pthread_join success!  Thread 1 should be finished now.
+IPT: Prepare to fork!!!
+Created childq.out and assigned fd= 3
+Write() wrote 30 bytes in childq.out
+Created parentside.out and assigned fd= 4
+Write() wrote 30 bytes in parentside.out
+Parent: I am the parent!
+Parent: My PID= 42349, child PID= 42351
+Child: I am the child!
+Child: My PID= 42351, parent= 42349
+Child exited with status: 0
+
+文件内容：
+$ cat parentside.out 
+Called Child Handlers
+prep3
+prep2
+prep1
+parent2
+parent3
+parent1
+
+$ cat childq.out 
+Called Child Handlers
+child3
+child1
+
+```
+从输出中能看出子进程中调用的处理函数可以通过文件描述符`3`往`childq.out`文件写内容，父进程可以通过文件描述符`4`往`parentside.out`文件中写内容。根据文件内容可以看出函数执行顺序。
+
+ 
