@@ -61,7 +61,7 @@ sudo apt-get install lunzip git-lfs
 ## 拉取
 
 然后`repo sync`一下，
-保险起见执行 `repo forall -c "git lfs pull"`
+并执行 `repo forall -c "pwd;git lfs pull"`
 
 ## 修改device.mk
 
