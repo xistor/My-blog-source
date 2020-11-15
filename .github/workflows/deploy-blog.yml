@@ -17,14 +17,14 @@ jobs:
         uses: peaceiris/actions-hugo@v2
         with:
           hugo-version: '0.78.1'
-          extended: true
+          # extended: true
 
       - name: Build
         run: hugo --minify
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        env:
+        with:
           ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
           EXTERNAL_REPOSITORY: xistor/xistor.github.io
           PUBLISH_BRANCH: master
