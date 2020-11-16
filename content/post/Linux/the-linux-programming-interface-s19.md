@@ -344,5 +344,17 @@ int sigwaitinfo(const sigset_t *set, siginfo_t *info);
 sigwaitinfo()会挂起进程，直到收到set中的某一信号,返回值为信号编号，info参数如果不为空的话，则会包含额外信息。
 使用sigwaitinfo()前应首先阻塞所有信号(即便信号阻塞，仍然可以使用sigwaitinfo()来获取等待信号)。
 
-## 通过文件描述符获取信号
+
+What happens if another signal arrives while your signal handler function is running?
+
+When the handler for a particular signal is invoked, that signal is automatically blocked until the handler returns. That means that if two signals of the same kind arrive close together, the second one will be held until the first has been handled. (The handler can explicitly unblock the signal using sigprocmask, if you want to allow more signals of this type to arrive; see Process Signal Mask.)
+
+However, your handler can still be interrupted by delivery of another kind of signal. To avoid this, you can use the sa_mask member of the action structure passed to sigaction to explicitly specify which signals should be blocked while the signal handler runs. These signals are in addition to the signal for which the handler was invoked, and any other signals that are normally blocked by the process. See Blocking for Handler.
+
+When the handler returns, the set of blocked signals is restored to the value it had before the handler ran. So using sigprocmask inside the handler only affects what signals can arrive during the execution of the handler itself, not what signals can arrive once the handler returns.
+
+Portability Note: Always use sigaction to establish a handler for a signal that you expect to receive asynchronously, if you want your program to work properly on System V Unix. On this system, the handling of a signal whose handler was established with signal automatically sets the signal’s action back to SIG_DFL, and the handler must re-establish itself each time it runs. This practice, while inconvenient, does work when signals cannot arrive in succession. However, if another signal can arrive right away, it may arrive before the handler can re-establish itself. Then the second signal would receive the default handling, which could terminate the process.
+
+
+
 
