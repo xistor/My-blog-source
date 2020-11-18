@@ -71,7 +71,7 @@ realloc()函数来调整一块内存的大小，此块内存应是之前malloc�
 
 
 
- ### Exercise
+ ### Exercises
 1. 修改free_and_sbrk.c如下，
 ```cpp
 #define _BSD_SOURCE

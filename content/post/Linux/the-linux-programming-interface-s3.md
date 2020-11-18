@@ -61,7 +61,7 @@ int ioctl(int fd, int request, .../* argp */);
 
 fd 参数为某个设备或文件已打开的描述符， request参数指定了将在fd上执行的控制操作。ioctl根据request的参数值来确定argp所期望的类型。通常情况下，argp是指向整数或结构的指针。对于未纳入标准I/O模型的所有设备和操作而言，ioctl()系统调用是个百宝箱。
 
-### Exercise
+### Exercises
 
 1. 实现 tee -a file:
 

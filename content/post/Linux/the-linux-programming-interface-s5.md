@@ -131,7 +131,7 @@ longjmp()的调用不能跳转到一个已经返回的函数，因为函数返�
 编译器优化  
 优化器对代码的优化会受到longjmp() 干扰，因此最好将局部变量声明为volatile，但最好尽可能避免使用setjmp()和longjmp()。
 
- ### Exercise
+ ### Exercises
  1. 编译后的mem_segments使用ll查看结果：
 
  ```

@@ -147,5 +147,5 @@ FILE *fdopen(int fd, const char *mode);
 ```
 在使用时需要考虑到两个缓冲区的存在导致的输出先后问题。
 
-### Exercise
+### Exercises
 

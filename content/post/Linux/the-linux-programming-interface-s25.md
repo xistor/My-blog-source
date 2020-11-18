@@ -74,6 +74,8 @@ struct sched_param {
 
 `sched_setscheduler()`能同时改变调度策略和进程优先级。`sched_setparam()`只改变进程优先级。  
 
+fork()后的子进程会继承调度策略，exec()后调度策略会保留。  
+
 修改进程nice值需要合适的权限，特权进程(CAP_SYS_NICE)可以设置调度策略优先级，或者EUID相同可以设置SCHED_OTHER策略。Linux2.6.12之后，资源限制RLIMIT_RTPRIO定义了进程修改优先级的上限，若RLIMIT_RTPRIO非0，则优先级不能高于当前优先级且不能高于RLIMIT_RTPRIO，RLIMIT_RTPRIO为0，进程只能降低其实时调度优先级，或者切换到非实时调度策略。  
 
 ```c
@@ -94,3 +96,117 @@ int sched_rr_get_interval(pid_t pid, struct timespec *tp);
 
 ## CPU Affinity
 
+进程在等待调度的时候不必每次都在同一个CPU内核上运行，但为了提高性能，避免缓存迁移，Linux实行了软CPU亲和力，一个进程只要有可能，就会在同一个CPU上调度运行。  
+
+Linux 也可以通过` sched_setaffinity()`来实现硬CPU亲和力，限制进程严格运行在某个或某几个CPU核上。
+
+
+## Exercises
+
+1. 实现nice(1)命令,简单实现了下，主要利用了nice在exec后会保留这一特点，先设置nice,再exec指定的命令即可。
+
+```cpp
+#include <iostream>
+#include <sys/resource.h>
+#include <unistd.h>
+
+int _nice(int n, char* argv[]);
+
+int main(int argc, char* argv[]) {
+
+    char opt;
+    int n = 10;
+    while ((opt = getopt(argc, argv, "n:")) != -1) {
+        switch (opt) {
+        case 'n':
+            n = atoi(optarg);
+            break;
+        default: /* '?' */
+            fprintf(stderr, "Usage: %s [-n] Cmd\n",
+                           argv[0]);
+                   exit(EXIT_FAILURE);
+        }
+    }
+
+    if(optind >= argc) {
+        fprintf(stderr, "Usage: %s [-n] Cmd\n",
+                           argv[0]);
+                   exit(EXIT_FAILURE);
+    }
+    _nice(n, argv + optind);
+}
+
+int _nice(int n, char* argv[]) {
+
+    // printf("exec %s at priority %d\n", argv[0], n);
+
+    if (setpriority(PRIO_PROCESS, 0, n) < 0) {
+        fprintf(stderr, "setpriority error");
+    }
+
+    if (execvp(argv[0], argv) < 0) {
+        fprintf(stderr,"ERROR: exec  %s failed\n", argv[0]);
+        exit(1);
+    };
+}
+```
+
+2. 实现一个set-user-ID程序，设置调度策略和优先级：
+```sh
+ ./rtsched policy priority command arg...
+```
+和练习1差不多，设置好调度策略和优先级后，再执行exec运行指定命令。
+```c
+#include <iostream>
+#include <sys/resource.h>
+#include <unistd.h>
+
+int sched(int policy, int pri, char* argv[]);
+
+int main(int argc, char* argv[]) {
+
+    char opt;
+    int policy;
+    int pri;
+
+    while ((opt = getopt(argc, argv, "rf")) != -1) {
+        switch (opt) {
+        case 'r':
+            policy = SCHED_RR;
+            break;
+        case 'f':
+            policy = SCHED_FIFO;
+        default: /* '?' */
+            fprintf(stderr, "Usage: %s -option priority Cmd\n",
+                           argv[0]);
+                   exit(EXIT_FAILURE);
+        }
+    }
+
+    if(optind > argc - 2) {
+        fprintf(stderr, "Usage: %s -option priority Cmd\n",
+                           argv[0]);
+                   exit(EXIT_FAILURE);
+    }
+
+    pri = atoi(argv[optind]);
+    sched(policy, pri, argv + optind +1);
+}
+
+int sched(int policy, int pri, char* argv[]) {
+
+    // printf("exec %s at priority %d\n", argv[0], n);
+
+    struct sched_param  sp;
+    sp.__sched_priority = pri;
+
+    if (sched_setscheduler(0, policy, &sp) < 0) {
+        fprintf(stderr, "sched_setscheduler error");
+    }
+
+    if (execvp(argv[0], argv) < 0) {
+        fprintf(stderr,"ERROR: exec  %s failed\n", argv[0]);
+        exit(1);
+    };
+}
+```

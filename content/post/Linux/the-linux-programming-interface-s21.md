@@ -143,7 +143,7 @@ while (waitpid(-1, NULL, WNOHANG) > 0)
 
 父进程将SIGCHLD设置为SIG_IGN,会使子进程立即终止，而不是转为僵尸进程。类似的在sigaction()中使用SA_NOCLDWAIT flag也可以实现同样的效果。
 
-## Exercise
+## Exercises
 
 2. 在父进程终止之后。
 

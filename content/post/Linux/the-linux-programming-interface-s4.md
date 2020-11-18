@@ -139,7 +139,7 @@ FILE *tmpfile(void)
 ```
 tmpfile()函数会创建一个名称唯一的临时文件，并以只读方式打开。执行成功会返回一个文件流，关闭文件流后将自动删除临时文件。
 
- ### Exercise
+ ### Exercises
 
 2. O_APPEND  
 The file is opened in append mode.  Before each write(2), the file offset is positioned at the end of the file, as if with lseek(2).

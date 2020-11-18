@@ -290,7 +290,7 @@ char *basename(char *pathname);
 
 `dirname()`和`basename()`函数将一个路径名字符串分解成目录和文件名两部分。比如给定路径名`/home/britta/prog.c`,`dirname()`将返回`/home/britta`,而`basename()`将返回`prog.c`。
 
-## Exercise
+## Exercises
 
 1.根据提示，在编译前后使用`ls -li`查看，发现可执行文件的i-number改变了，所以实际行为为原可执行文件的在目录中的记录被删除了，但其i-node在其执行期间还存在，只不过新建了一个新文件以及i-node信息，文件名指向了新的i-number。  
 3.Github上找到了一个小哥写的[程序](https://github.com/timjb/tlpi-exercises/blob/master/realpath_clone.c)，花了点时间看懂了，加了些注释。

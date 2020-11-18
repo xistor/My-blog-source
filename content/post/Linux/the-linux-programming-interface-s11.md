@@ -98,7 +98,7 @@ dr-xr-xr-x 4 root root 0 Aug  3 14:20 task/
 
 其他的就用到时再详细了解了，/proc下的文件一般普通用户可读，但要改就需要root权限了。
 
-### Exercise
+### Exercises
 
 2.绘制树状结构，展示系统中所有进程的父子关系。
 此程序首先遍历/proc文件夹，以数字寻找进程文件夹，并读取其下面status文件中的cmdline和PPid信息。
