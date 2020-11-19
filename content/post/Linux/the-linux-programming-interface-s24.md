@@ -75,3 +75,51 @@ $ fg %1
 只有前台作业的进程才能从控制终端读取输入，如果后台作业尝试从控制终端中读取输入，就会收到一个SIGTTIN信号。（SIGTTIN信号的默认操作是停止作业）
 默认情况下（终端未设置TOSTOP标记），后台作业是可以通过终端输出内容的。
 
+
+书中给了一段处理作业控制信号的例子，关于SIGTSTP的信号处理函数部分在下面，来看他是怎么做的，首先在（1）处将SIGTSTP信号的处置方式设为默认，(2)重新发送SIGTSTP，因为进入了信号处理函数会阻塞SIGTSTP（除非指定了SA_NODEFER标记），所以在（3）处解除阻塞信号后，会收到（2）处发出的SIGTSTP，进程会被挂起。在收到SIGCONT信号后（如使用fg调进程至前台），程序从（4）处继续执行，又将SIGTSTP信号阻塞，然后在（5）处重新注册本身。  
+看完流程，有两个疑问，（4）处将信号重新阻塞，那么之后还能收到SIGTSTP信号吗，又是在那里解除阻塞的呢？别忘了，当前这段程序是在信号处理函数内，在信号处理函数内部的信号阻塞和解除阻塞都只在内部有效，所以跳出信号处理函数后，信号mask就会被恢复原状。另一个问题是为什么需要重新注册本身为信号处理函数呢？之前好像没有看到需要每次注册呀，这个是因为（1）处把SIGTSTP信号的处置方式设为默认了，所以需要在退出信号处理函数之前重新注册自身。
+
+
+```c
+
+static void                             /* Handler for SIGTSTP */
+tstpHandler(int sig)
+{
+    sigset_t tstpMask, prevMask;
+    int savedErrno;
+    struct sigaction sa;
+
+    savedErrno = errno;                 /* In case we change 'errno' here */
+
+    printf("Caught SIGTSTP\n");         /* UNSAFE (see Section 21.1.2) */
+
+    if (signal(SIGTSTP, SIG_DFL) == SIG_ERR) //（1）
+        errExit("signal");              /* Set handling to default */
+
+    raise(SIGTSTP);     // (2)                    /* Generate a further SIGTSTP */
+
+    /* Unblock SIGTSTP; the pending SIGTSTP immediately suspends the program */
+
+    sigemptyset(&tstpMask);
+    sigaddset(&tstpMask, SIGTSTP);
+    if (sigprocmask(SIG_UNBLOCK, &tstpMask, &prevMask) == -1)   // （3）
+        errExit("sigprocmask");
+
+    /* Execution resumes here after SIGCONT */
+
+    printf("continue handler\n");   // (4)
+    if (sigprocmask(SIG_SETMASK, &prevMask, NULL) == -1)
+        errExit("sigprocmask");         /* Reblock SIGTSTP */
+
+    // sigemptyset(&sa.sa_mask);           /* Reestablish handler */
+    // sa.sa_flags = SA_RESTART;
+    // sa.sa_handler = tstpHandler;
+    // if (sigaction(SIGTSTP, &sa, NULL) == -1) // （5）
+    //     errExit("sigaction");
+
+    printf("Exiting SIGTSTP handler\n");
+    errno = savedErrno;
+}
+
+```
+
