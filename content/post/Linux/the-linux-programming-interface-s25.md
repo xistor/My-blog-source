@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 
     char opt;
     int n = 10;
-    while ((opt = getopt(argc, argv, "n:")) != -1) {
+    if ((opt = getopt(argc, argv, "n:")) != -1) {
         switch (opt) {
         case 'n':
             n = atoi(optarg);
@@ -155,11 +155,14 @@ int _nice(int n, char* argv[]) {
 ```sh
  ./rtsched policy priority command arg...
 ```
-和练习1差不多，设置好调度策略和优先级后，再执行exec运行指定命令。
+和练习1差不多，设置好调度策略和优先级后，再执行exec运行指定命令。程序郧西不过
 ```c
 #include <iostream>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 int sched(int policy, int pri, char* argv[]);
 
@@ -169,13 +172,14 @@ int main(int argc, char* argv[]) {
     int policy;
     int pri;
 
-    while ((opt = getopt(argc, argv, "rf")) != -1) {
+    if ((opt = getopt(argc, argv, "rf")) != -1) {
         switch (opt) {
         case 'r':
             policy = SCHED_RR;
             break;
         case 'f':
             policy = SCHED_FIFO;
+            break;
         default: /* '?' */
             fprintf(stderr, "Usage: %s -option priority Cmd\n",
                            argv[0]);
@@ -195,13 +199,16 @@ int main(int argc, char* argv[]) {
 
 int sched(int policy, int pri, char* argv[]) {
 
-    // printf("exec %s at priority %d\n", argv[0], n);
+    // printf("exec %s policy %d priority %d\n", argv[0], policy, pri);
 
     struct sched_param  sp;
     sp.__sched_priority = pri;
 
     if (sched_setscheduler(0, policy, &sp) < 0) {
-        fprintf(stderr, "sched_setscheduler error");
+        int pri_min = sched_get_priority_min(policy);
+        int pri_max = sched_get_priority_max(policy);
+
+        fprintf(stderr, "sched_setscheduler error : %s , the priority must in range %d~%d", strerror(errno), pri_min, pri_max);
     }
 
     if (execvp(argv[0], argv) < 0) {
