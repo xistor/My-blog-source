@@ -96,4 +96,148 @@ int main() {
 
 使用`dlopen()`打开对应的库文件，打开过程可以指定flag,打开成功会返回一个指针。之后使用`dlsym()`传入`dlopen()`返回的指针和符号名称，若找到了对应的函数或变量，会返回其地址，然后转换成合适的类型，就可以使用了。
 - RTLD_DEFAULT: 默认顺序搜索符号。
-- RTLD_NEXT: 根据共享对象的搜索顺序，从“当前对象”后搜索某个符号，返回该符号的地址。“当前对象”指的是，dlsym(RTLD_NEXT, "syscall");代码所在的对象。可以用来wrap系统函数。使用方法：`func = dlsym(RTLD_NEXT, “malloc”)`。这个选项我特么困惑了，一开始是编译出的可执行文件并没有依赖`gcc -l`后添加的库，貌似原因是gcc现在默认开启–as-needed选项，如果没有用到库就不会写到到可执行文件的依赖中，所以编译时加了` -Wl,--no-as-needed`，之后程序可以运行，但表现和使用RTLD_DEFAULT选项并无不同，原因还待查。
+- RTLD_NEXT: 根据共享对象的搜索顺序，从“当前对象”后搜索某个符号，返回该符号的地址。“当前对象”指的是，dlsym(RTLD_NEXT, "syscall");代码所在的对象。可以用来wrap系统函数。使用方法：`func = dlsym(RTLD_NEXT, “malloc”)`。这个选项我特么困惑了，一开始是编译出的可执行文件并没有依赖`gcc -l`后添加的库，貌似原因是gcc现在默认开启–as-needed选项，如果没有用到库就不会写到到可执行文件的依赖表中，所以编译时加了` -Wl,--no-as-needed`，之后程序可以运行，但表现和使用RTLD_DEFAULT选项并无不同，原因还待查。
+
+## 控制符号可见性
+
+
+一个设计良好的库应该只将其ABI中指定的符号（函数或变量）可见，因为:
+- 若开放的未指明的接口被用户使用了，在库升级的时候带来兼容性问题。
+- 在符号解析时，开放的符号可能会影响其他库。
+- 开放没必要的符号会增大在必须在运行时载入的动态符号表。
+
+以下几种方法可以用来控制符号的输出：
+
+- 在C程序中，可以使用`static`关键字将符号限制在同一个源码文件中。
+- GNU C 编译器提供了编译器特性属性可以实现和`static`类似的效果
+
+```c
+void
+__attribute__ ((visibility("hidden")))
+func(void) {
+ /* Code */
+}
+```
+
+- 版本脚本可以用来精确的控制符号的可见性。
+- 当动态载入共享库时，`dlopen() RTLD_GLOBAL` flag可以用来指定共享库内定义的符号对其后来载入的库可见，`––export–dynamic`链接器选项可以用来将主程序中的全局变量对其动态载入的库可见。
+
+## 链接器版本脚本
+
+比如一个c文件
+```c
+// foo.c
+#include <stdio.h>
+
+void xyz(){
+ printf("foo-xyz\n");
+}
+
+void func() {
+ xyz();
+}
+```
+
+有两个全局函数，编译后查看公开的动态符号如下：
+```sh
+$ readelf --syms --use-dynamic libfoo.so 
+
+Symbol table of `.gnu.hash' for image:
+  Num Buc:    Value          Size   Type   Bind Vis      Ndx Name
+    7   0: 0000000000201028     0 NOTYPE  GLOBAL DEFAULT  22 _edata
+    8   0: 0000000000201030     0 NOTYPE  GLOBAL DEFAULT  23 _end
+    9   1: 0000000000201028     0 NOTYPE  GLOBAL DEFAULT  23 __bss_start
+   10   1: 0000000000000520     0 FUNC    GLOBAL DEFAULT   9 _init
+   11   2: 0000000000000670     0 FUNC    GLOBAL DEFAULT  13 _fini
+   12   2: 000000000000065d    17 FUNC    GLOBAL DEFAULT  12 func
+   13   2: 000000000000064a    19 FUNC    GLOBAL DEFAULT  12 xyz
+```
+
+如果我们只想公开func符号，可以像下面这样写版本脚本，global后的符号会被处理为可见，local后面的符号会被对外隐藏。
+
+```
+// foo.map
+
+VER_1 {
+    global:
+        func;
+    local:
+        *;
+};
+```
+
+编译命令：
+
+```sh
+$ gcc -g -c -fPIC -Wall foo.c
+$ gcc -g -shared -o libfoo.so foo.o -Wl,--version-script,foo.map
+```
+
+查看新的so的符号，xyz已不可见：
+
+```sh
+$ readelf --syms --use-dynamic libfoo.so 
+
+Symbol table of `.gnu.hash' for image:
+  Num Buc:    Value          Size   Type   Bind Vis      Ndx Name
+    7   0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT ABS VER_1
+    8   1: 00000000000005dd    17 FUNC    GLOBAL DEFAULT  13 func
+```
+
+若新的库内重新定义了func函数，但希望老的程序依然使用ver1版本的函数，需要如下定义，`@@`符号表示默认定义，一个符号只能有一个。
+
+```
+#include <stdio.h>
+
+__asm__(".symver func_old,func@VER_1");
+__asm__(".symver func_new,func@@VER_2");
+
+
+
+void xyz() {
+    printf("foo-xyz\n");
+}
+
+
+void func_old() {
+    printf("func_old");
+}
+
+void func_new() {
+    printf("func_new");
+}
+```
+
+相应的版本脚本修改为：
+
+```
+VER_1 {
+    global:
+        func;
+    local:
+        *;
+};
+
+VER_2 {
+    global: func;
+            xyz;
+    local:
+        *;
+
+} VER_1;
+```
+
+编译后查看符号有两个func，应该是两个不同的版本。不过好像没发现在编译时指定使用哪个版本的方法，只能在源文件中使用`@@`指定。VER_2最后的VER_1后缀表示：VER_2中没有定义的，会继承VER_1中的定义。
+
+```sh
+$ readelf --syms --use-dynamic libfoo.so 
+
+Symbol table of `.gnu.hash' for image:
+  Num Buc:    Value          Size   Type   Bind Vis      Ndx Name
+    8   0: 0000000000000000     0 OBJECT  GLOBAL DEFAULT ABS VER_1
+    9   1: 0000000000000000     0 OBJECT  GLOBAL DEFAULT ABS VER_2
+   10   2: 00000000000006d5    24 FUNC    GLOBAL DEFAULT  13 func
+   11   2: 00000000000006bd    24 FUNC    GLOBAL DEFAULT  13 func
+   12   2: 00000000000006aa    19 FUNC    GLOBAL DEFAULT  13 xyz
+
+```
