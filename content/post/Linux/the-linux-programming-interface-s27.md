@@ -90,13 +90,17 @@ int main() {
         (*func_print)();
     else 
         printf("sym error");
+
+    dlclose(libfoo);
 }
 
 ```
 
 使用`dlopen()`打开对应的库文件，打开过程可以指定flag,打开成功会返回一个指针。之后使用`dlsym()`传入`dlopen()`返回的指针和符号名称，若找到了对应的函数或变量，会返回其地址，然后转换成合适的类型，就可以使用了。
 - RTLD_DEFAULT: 默认顺序搜索符号。
-- RTLD_NEXT: 根据共享对象的搜索顺序，从“当前对象”后搜索某个符号，返回该符号的地址。“当前对象”指的是，dlsym(RTLD_NEXT, "syscall");代码所在的对象。可以用来wrap系统函数。使用方法：`func = dlsym(RTLD_NEXT, “malloc”)`。这个选项我特么困惑了，一开始是编译出的可执行文件并没有依赖`gcc -l`后添加的库，貌似原因是gcc现在默认开启–as-needed选项，如果没有用到库就不会写到到可执行文件的依赖表中，所以编译时加了` -Wl,--no-as-needed`，之后程序可以运行，但表现和使用RTLD_DEFAULT选项并无不同，原因还待查。
+- RTLD_NEXT: 根据共享对象的搜索顺序，从“当前对象”后搜索某个符号，返回该符号的地址。“当前对象”指的是，dlsym(RTLD_NEXT, "syscall");代码所在的对象。可以用来wrap系统函数。使用方法：`func = dlsym(RTLD_NEXT, “malloc”)`。这个选项我特么困惑了，一开始是编译出的可执行文件并没有依赖`gcc -l`后添加的库，貌似原因是gcc现在默认开启–as-needed选项，如果没有用到库就不会写到到可执行文件的依赖表中，所以编译时加了` -Wl,--no-as-needed`，之后程序可以运行，但表现和使用RTLD_DEFAULT选项并无不同，原因还待查。  
+
+`dlopen()`和`dlclose()`在打开和关闭库的时候会有类似引用计数的机制，直到一个库的的handle计数为0才会实际上unload库。
 
 ## 控制符号可见性
 
@@ -241,3 +245,24 @@ Symbol table of `.gnu.hash' for image:
    12   2: 00000000000006aa    19 FUNC    GLOBAL DEFAULT  13 xyz
 
 ```
+
+## 初始化和析构函数
+
+初始化函数在库被加载的时候被调用，析构函数在库被卸载的时候被调用。
+
+有两种方式：
+- 一种是使用gcc 构造和析构属性
+```c
+void __attribute__ ((constructor)) some_name_load(void)
+{
+ /* Initialization code */
+}
+
+void __attribute__ ((destructor)) some_name_unload(void)
+{
+ /* Finalization code */
+}
+```
+
+- 第二种也是比较老的一种是使用`_init()`和`_fini()`函数。使用这两个函数需要在编译库时指定`gcc -nostartfiles`选项，以避免链接器生成默认的函数。
+
