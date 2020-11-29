@@ -27,3 +27,49 @@ $ ls | wc -l
 
 ## 创建和使用管道
 
+下面是例子，使用`pipe()`创建管道后，调用`fork()`,在父进程中往管道写数据，在另一端的子进程从管道中读出数据。父进程往管道写完数据后，会关闭管道，子进程在循环读出的过程中碰到EOF就退出循环。
+
+```cpp
+int pfd[2];                             /* Pipe file descriptors */
+char buf[BUF_SIZE];
+ssize_t numRead;
+
+if (pipe(pfd) == -1)                    /* Create the pipe， pfd[0] 读管道， pfd[1] 写管道*/
+        errExit("pipe");
+
+switch (fork()) {
+    case -1:
+        errExit("fork");
+
+    case 0:             /* Child  - reads from pipe */
+        if (close(pfd[1]) == -1)            /* Write end is unused */
+            errExit("close - child");
+
+        for (;;) {              /* Read data from pipe, echo on stdout */
+            numRead = read(pfd[0], buf, BUF_SIZE);
+            if (numRead == -1)
+                errExit("read");
+            if (numRead == 0)
+                break;                      /* End-of-file */
+            if (write(STDOUT_FILENO, buf, numRead) != numRead)
+                fatal("child - partial/failed write");
+        }
+
+        write(STDOUT_FILENO, "\n", 1);
+        if (close(pfd[0]) == -1)
+            errExit("close");
+        _exit(EXIT_SUCCESS);
+
+    default:            /* Parent - writes to pipe */
+        if (close(pfd[0]) == -1)            /* Read end is unused */
+            errExit("close - parent");
+
+        if (write(pfd[1], "hello", 5) != 5)
+            fatal("parent - partial/failed write");
+
+        if (close(pfd[1]) == -1)            /* Child will see EOF */
+            errExit("close");
+        wait(NULL);                         /* Wait for child to finish */
+        exit(EXIT_SUCCESS);
+    }
+```
