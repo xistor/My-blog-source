@@ -73,3 +73,48 @@ switch (fork()) {
         exit(EXIT_SUCCESS);
     }
 ```
+
+实现shell中的连接符，比如`ls | wc -l`这样，主要操作就是将标准输入输出冲定向到管道，使用`dup2()`复制文件描述符实现，然后在两端分别关闭重复的文件描述符。
+
+```c
+if (pfd[1] != STDOUT_FILENO) {
+    dup2(pfd[1], STDOUT_FILENO);
+    close(pfd[1]);
+}
+```
+
+### popen
+
+`popen()`用来执行一个shell命令，并且可以通过管道读取其输出或发给它一个输入。
+
+```c
+#include <stdio.h>
+
+FILE *popen(const char *command, const char *mode);
+
+int pclose(FILE *stream);
+```
+
+`command`为想要执行的命令，`mode`为`r`或`w`。`popen()`返回的描述符只能用`pclose()`关闭，而不能用`fclose()`关闭，因为`popen()`在执行过程中会创建两个进程，`pclose()`会wait子进程，而使用`fclose()`会产生僵尸进程。
+
+
+## 管道和stdio缓冲
+
+文件流是块缓冲的，所以stdio对待`popen()`返回的管道也是块缓冲的，一般向管道写入时问题不大，我们可以fflush()刷新缓冲区，或者setbuf(fp, NULL)关闭stdio缓冲。但当我们作为管道的读取端时，就不太好控制了，只能看写入端的代码怎么写的了。这种情况可以使用伪终端，在伪终端的情况下，stdio缓冲为行缓冲。
+
+## FIFO 命名管道
+
+```c
+#include <sys/stat.h>
+
+int mkfifo(const char *pathname, mode_t mode);
+// mode 指定权限
+```
+
+FIFO和管道的类似，只不过FIFO在文件系统中会有一个路径，所以也被叫做命名管道。  
+
+一般来说FIFO只会一个读进程和一个写进程，因此，当以只读打开一个FIFO时会阻塞，直到另一端的进程以只写打开FIFO。同样的，以只写打开一个FIFO也会阻塞至另一端以只读打开。  
+
+想要在open的时候不阻塞，最好使用`O_NONBLOCK`标志。以此标志读FIFO时，没有进程在写端打开，则马上成功结束调用，以此标志写FIFO时，没有进程在对端读，则返回错误ENXIO。
+
+
