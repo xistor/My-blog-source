@@ -1,5 +1,5 @@
 ---
-title: "Linux/Unix系统编程手册-笔记27. 管道"
+title: "Linux/Unix系统编程手册-笔记28. 管道"
 date: 2020-11-27T18:30:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
