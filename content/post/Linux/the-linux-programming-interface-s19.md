@@ -263,7 +263,7 @@ Higher values like 200809L make more features available. (man 7 feature_test_mac
 while ((cnt = read(fd, buf, BUF_SIZE)) == -1 && errno == EINTR)
  continue;
 ```
-2. 在使用`sigaction()`建立信号处理函数时使用SA_RESTART标志，内核会自动帮忙重启系统调用（有些系统调用不支持）。
+2. 在使用`sigaction()`建立信号处理函数时使用SA_RESTART标志，内核会自动帮忙重启系统调用（有些系统调用不支持，比如poll(), ppoll(), select(), pselect(),  epoll_wait(), epoll_pwait(), io_getevents(), semop(), semtimedop(), msgrcv(), msgsnd(), read() read() from an inotify file descriptor, sleep(), nanosleep(), and clock_nanosleep(), pause(), sigsuspend(), sigtimedwait(), and sigwaitinfo()）。
 
 ## 传递、处置及处理特殊情况
 
