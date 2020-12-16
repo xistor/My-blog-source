@@ -56,3 +56,254 @@ ssize_t msgrcv(int msqid, void *msgp, size_t maxmsgsz, long msgtyp, int msgflg);
 2.每个客户端使用一个消息队列，一般来说，服务端会先创建一个消息队列，供客户端将自己创建的消息队列标识符发送给服务端。可能存在的问题就是系统中消息队列的数量是有限制的。
 
 ![每个客户端使用一个消息队列](/img/the-linux-programming-interface-s30/per_mq.png)
+
+
+## Exercises
+
+2. 使用system V 消息队列实现管道章节的sequence-number程序：
+
+```c
+// mq_seqnum_server.h
+
+#include <sys/types.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+#include <stddef.h>                     /* For definition of offsetof() */
+#include <limits.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include "tlpi_hdr.h"
+
+#define MQ_KEY 0x1aaaaaa1           /* Key for server's message queue */
+
+struct requestMsg {                /* Request (client --> server) */
+    long mtype; 
+    pid_t pid;                  /* PID of client */
+    int seqLen;                 /* Length of desired sequence */
+};
+
+struct responseMsg {               /* Response (server --> client) */
+    long mtype;
+    int seqNum;                 /* Start of sequence */
+};
+
+#define REQ_MSG_SIZE (sizeof(pid_t) + sizeof(int))
+
+#define RESP_MSG_SIZE sizeof(int)
+
+```
+
+```c
+// mq_seqnum_server.c
+
+#include "mq_seqnum_server.h"
+
+int
+main(int argc, char *argv[])
+{
+    struct requestMsg req;
+    struct responseMsg rsp;
+
+    ssize_t msgLen;
+    int serverId;
+    int seqNum = 0;
+
+    /* Create server message queue */
+
+    serverId = msgget(MQ_KEY, IPC_CREAT | IPC_EXCL |
+                            S_IRUSR | S_IWUSR | S_IWGRP);
+    if (serverId == -1)
+        errExit("srv msgget");
+
+    for (;;) {
+        msgLen = msgrcv(serverId, &req, REQ_MSG_SIZE, 1, 0);
+        if (msgLen == -1) {
+            if (errno == EINTR)         /* Interrupted by SIGCHLD handler? */
+                continue;               /* ... then restart msgrcv() */
+            errMsg("srv msgrcv");           /* Some other error */
+            break;                      /* ... so terminate loop */
+        }
+
+        rsp.seqNum = seqNum;
+        rsp.mtype = req.pid;
+        printf("rcv msg from %d\n", req.pid);
+    
+        if (msgsnd(serverId, &rsp, RESP_MSG_SIZE, 0) == -1) {
+            errMsg("srv msgsnd");
+            break;            
+        }
+
+        seqNum += req.seqLen;
+    }
+
+    /* If msgrcv() or fork() fails, remove server MQ and exit */
+
+    if (msgctl(serverId, IPC_RMID, NULL) == -1)
+        errExit("srv msgctl");
+    exit(EXIT_SUCCESS);
+}
+```
+
+```c
+// mq_seqnum_client.c
+#include "mq_seqnum_server.h"
+
+
+int
+main(int argc, char *argv[])
+{
+    struct requestMsg req;
+    struct responseMsg resp;
+    int mqId;
+    ssize_t msgLen;
+
+    if (argc != 2 || strcmp(argv[1], "--help") == 0)
+        usageErr("%s num\n", argv[0]);
+
+    mqId = msgget(MQ_KEY, S_IWUSR);
+    if (mqId == -1)
+        errExit("msgget - server message queue");
+    req.mtype = 1;                      /* send to server */
+    req.pid = getpid();
+    req.seqLen = atoi(argv[1]);
+
+
+    if (msgsnd(mqId, &req, REQ_MSG_SIZE, 0) == -1)
+        errExit("msgsnd");
+    /* Get first response, which may be failure notification */
+
+    msgLen = msgrcv(mqId, &resp, RESP_MSG_SIZE, getpid(), 0);
+    if (msgLen == -1)
+        errExit("msgrcv");
+
+    printf("Receive seqNum %d\n", resp.seqNum);
+
+    exit(EXIT_SUCCESS);
+}
+
+```
+
+
+5. 给svmsg_file_client.c中的客户端在send和recv消息的时候添加timeout,避免被永久阻塞。
+
+```c
+
+#include "svmsg_file.h"
+
+#define TIMEOUT 10
+static int clientId;
+
+static void /* SIGALRM handler: interrupts blocked system call */
+handler(int sig)
+{
+    printf("msg Send timeout\n"); /* UNSAFE (see Section 21.1.2) */
+}
+
+static void
+removeQueue(void)
+{
+    if (msgctl(clientId, IPC_RMID, NULL) == -1)
+        errExit("msgctl");
+}
+
+
+
+void set_timeout(int num_secs) {
+    struct sigaction sa;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);   
+    sa.sa_handler = handler;
+    if (sigaction(SIGALRM, &sa, NULL) == -1)
+        errExit("sigaction");
+    alarm(num_secs);
+}
+
+void cancel_timeout() {
+    int savedErrno;
+    savedErrno = errno;
+    alarm(0); /* Ensure timer is turned off */
+    errno = savedErrno;
+}
+
+
+int
+main(int argc, char *argv[])
+{
+    
+    struct requestMsg req;
+    struct responseMsg resp;
+    int serverId, numMsgs;
+    ssize_t msgLen, totBytes;
+
+
+    if (argc != 2 || strcmp(argv[1], "--help") == 0)
+        usageErr("%s pathname\n", argv[0]);
+
+    if (strlen(argv[1]) > sizeof(req.pathname) - 1)
+        cmdLineErr("pathname too long (max: %ld bytes)\n",
+                (long) sizeof(req.pathname) - 1);
+
+    /* Get server's queue identifier; create queue for response */
+
+    serverId = msgget(SERVER_KEY, S_IWUSR);
+    if (serverId == -1)
+        errExit("msgget - server message queue");
+
+    clientId = msgget(IPC_PRIVATE, S_IRUSR | S_IWUSR | S_IWGRP);
+    if (clientId == -1)
+        errExit("msgget - client message queue");
+
+    if (atexit(removeQueue) != 0)
+        errExit("atexit");
+
+    /* Send message asking for file named in argv[1] */
+
+    req.mtype = 1;                      /* Any type will do */
+    req.clientId = clientId;
+    strncpy(req.pathname, argv[1], sizeof(req.pathname) - 1);
+    req.pathname[sizeof(req.pathname) - 1] = '\0';
+                                        /* Ensure string is terminated */
+    
+    set_timeout(TIMEOUT);
+
+    if (msgsnd(serverId, &req, REQ_MSG_SIZE, 0) == -1)
+        errExit("msgsnd");    
+
+    cancel_timeout();
+
+    /* Get first response, which may be failure notification */
+
+    set_timeout(TIMEOUT);
+
+    msgLen = msgrcv(clientId, &resp, RESP_MSG_SIZE, 0, 0);
+
+    cancel_timeout();
+
+    if (msgLen == -1)
+        errExit("msgrcv");
+
+    if (resp.mtype == RESP_MT_FAILURE) {
+        printf("%s\n", resp.data);      /* Display msg from server */
+        exit(EXIT_FAILURE);
+    }
+
+    /* File was opened successfully by server; process messages
+       (including the one already received) containing file data */
+
+    totBytes = msgLen;                  /* Count first message */
+    for (numMsgs = 1; resp.mtype == RESP_MT_DATA; numMsgs++) {
+        msgLen = msgrcv(clientId, &resp, RESP_MSG_SIZE, 0, 0);
+        // printf(resp.data);
+        if (msgLen == -1)
+            errExit("msgrcv");
+
+        totBytes += msgLen;
+    }
+
+    printf("Received %ld bytes (%d messages)\n", (long) totBytes, numMsgs);
+
+    exit(EXIT_SUCCESS);
+}
+
+```
