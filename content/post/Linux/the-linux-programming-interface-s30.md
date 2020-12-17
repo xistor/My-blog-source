@@ -25,6 +25,9 @@ struct mymsg {
     char mtext[]; /* Message body */
 }
 ```
+除了`long`型的`mtype`的，结构体内的内容和长度都是自定义的，不一定非得是个字符数组。  
+
+参数`msgsz`指定了`mtext`域的大小（bytes）。
 
 ### msgrcv
 
@@ -34,6 +37,7 @@ struct mymsg {
 ssize_t msgrcv(int msqid, void *msgp, size_t maxmsgsz, long msgtyp, int msgflg);
 // Returns number of bytes copied into mtext field, or –1 on error
 ```
+参数`maxmsgsz`指定了`mtext`域最大可用空间大小，这点和`msgsnd()`的参数`msgsz`有点区别。默认情况下，如果消息体的大小超过了`maxmsgsz`,将产生`E2BIG`错误。
 
 `msgtyp`参数可以控制接收的消息类型：
 - 如果`msgtyp`等于0，就按队列顺序读取消息。
@@ -88,7 +92,8 @@ struct responseMsg {               /* Response (server --> client) */
     int seqNum;                 /* Start of sequence */
 };
 
-#define REQ_MSG_SIZE (sizeof(pid_t) + sizeof(int))
+#define REQ_MSG_SIZE (offsetof(struct requestMsg, seqLen) - \
+                      offsetof(struct requestMsg, pid) + sizeof(int))
 
 #define RESP_MSG_SIZE sizeof(int)
 
