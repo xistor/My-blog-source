@@ -1,6 +1,6 @@
 ---
 title: "Linux/Unix系统编程手册-笔记33. 内存映射"
-date: 2020-12-25T18:30:00+08:00
+date: 2020-12-26T18:47:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
 ---
