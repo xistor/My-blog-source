@@ -44,7 +44,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
     |PORT_READ|内容可读|
     |PORT_WRITE|内容可写|
     |PORT_EXEC|内容可执行|
-    port值需要和打开要映射的文件描述符时指定的权限相兼容。
+    port值需要和打开要映射的文件描述符时指定的权限相兼容。若用`O_WRONLY`打开一个文件，内存映射时只指定PORT_WRITE是不行的，因为硬件架构上就不允许内存页只读。若是匿名映射，保护flag可以随意设置。
 
 - `flags`: 控制内存映射的选项，有`MAP_PRIVATE`和`MAP_SHARED`等。
 - `fd`和`offset`:用于文件映射，用于指定映射的文件以及开始的偏移（需要页对齐）。在匿名映射时会忽略。
@@ -70,8 +70,6 @@ if (write(STDOUT_FILENO, addr, sb.st_size) != sb.st_size)
     fatal("partial/failed write")
 ```
 
-
-
 ```c
 #include <sys/mman.h>
 int munmap(void *addr, size_t length);
@@ -81,6 +79,42 @@ int munmap(void *addr, size_t length);
 - `addr`: 内存映射起始地址，必须页对齐。
 - `length`: 映射内存的大小。
 
-可以unmap映射内存的一部分，也可以多块映射内存一起unmap。
+可以unmap映射内存的一部分，也可以多块映射内存一起unmap。  
 
 
+内存映射并不能改变文件大小，如需要增大文件或截断文件，在mmap()之前使用ftruncate()或write()。
+
+但Linux提供了重新映射的系统调用`mremap()`（不可移植），可以改变映射大小。
+
+```c
+#define _GNU_SOURCE
+#include <sys/mman.h>
+void *mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...);
+// Returns starting address of remapped region on success, or MAP_FAILED on error
+```
+
+## MAP_NORESERVE 和交换空间过量使用
+
+swap是虚拟内存在硬盘上的一部分，物理内存中暂时用不到的页将会被交换到swap中。一些应用创建了超大的内存映射（一般是私有匿名映射），但只使用了很小一块，如果内存为每一一个映射分配足够的交换空间(swap space), 会造成交换空间的浪费，所以就有了lazy swap reservation 机制, 此机制允许交换空间超额使用，只有应用访问的页才会载入。若RAM和swap耗尽会引来OOM killer杀进程释放内存。  
+
+在`mmap()`时指定MAP_NORESERVE flag可以告诉内核不必检查剩余交换空间是否足够，不过这个flag只有在`/proc/sys/vm/overcommit_memory`为0时管用。其他情况：
+```
+/proc/sys/vm/overcommit_memory : 1 内核认为内存总是足够的，不检查。
+/proc/sys/vm/overcommit_memory : 2 分配时总是检查是否足够，从不超额分配。可分配的虚拟内存地址空间的计算方式为：
+CommitLimit = (total_RAM - total_huge_TLB) * overcommit_ratio / 100 + total_swap
+
+total_RAM: 系统RAM的总量
+total_huge_TLB: 为大页面预留的
+overcommit_ratio:  /proc/sys/vm/overcommit_ratio 中的值，默认是50
+total_swap: swap空间的大小
+```
+
+超额检测只有在以下两种情况下起作用：
+- 私有可写映射（无论是文件还是匿名），swap空间使用的大小和每个进程的内存映射大小相同。
+- 共享匿名映射，swap空间使用和内存映射大小相同。
+
+给一个只读的私有映射保留swap是没有必要的，因为映射的内容是不能被更改的。共享文件映射也没必要使用swap,因为修改会被反应到映射的文件上，这个文件就和swap的作用相同。
+
+##  MAP_FIXED
+
+ 若`mmap()`不指定MAP_FIXED，参数addr仅作为参考值，内核会在其周围选一个页对齐的地址作为映射地址，当指定了MAP_FIXED后，addr就是映射地址了，此时addr必须是页对齐的。
