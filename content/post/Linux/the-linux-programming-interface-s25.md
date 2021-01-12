@@ -155,7 +155,7 @@ int _nice(int n, char* argv[]) {
 ```sh
  ./rtsched policy priority command arg...
 ```
-和练习1差不多，设置好调度策略和优先级后，再执行exec运行指定命令。程序郧西不过
+和练习1差不多，设置好调度策略和优先级后，再执行exec运行指定命令。程序如下：
 ```c
 #include <iostream>
 #include <sys/resource.h>

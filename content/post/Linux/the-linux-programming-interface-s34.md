@@ -202,3 +202,70 @@ main(int argc, char *argv[])
     pause(); /* Wait for notifications via thread function */
 }
 ```
+
+## POSIX 信号量
+
+相关API和POSIX消息队列的类似，和System V 信号量有点区别：
+- `sem_post()`和`sem_wait()`一个只操作一个信号量，而且每次只递增或递减1。
+- 没有wait-for-zero操作
+
+对于命名信号量，使用`sem_open()`创建。  
+
+对于无名信号量：  
+
+使用`sem_init()`可以初始化一个无名信号量，并且可以通过参数pshared指定信号量sem是在线程间共享还是在进程间共享。线程间共享时sem一般是一个全局变量或者堆上分配的变量，进程间共享时，sem需要是一个共享内存或者共享内存映射的地址。
+
+
+```c
+#include <semaphore.h>
+int sem_init(sem_t *sem, int pshared, unsigned int value);
+// Returns 0 on success, or –1 on error
+```
+
+## POSIX 共享内存
+
+使用POSIX共享内存分两步：
+- 使用`shm_open()`以指定名字打开一个共享内存对象。
+- 将上一步打开的文件描述符传递给mmap(),使用 MAP_SHARED flag将其映射到进程的虚拟内存空间。
+
+
+使用要点：
+
+```cpp
+    // 写东西到共享内存中
+    fd = shm_open(argv[1], O_RDWR, 0); /* Open existing object */
+    if (fd == -1)
+        errExit("shm_open");
+    len = strlen(argv[2]);
+    if (ftruncate(fd, len) == -1) /* Resize object to hold string */
+        errExit("ftruncate");
+    printf("Resized to %ld bytes\n", (long) len);
+    addr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (addr == MAP_FAILED)
+        errExit("mmap");
+    if (close(fd) == -1)
+        errExit("close"); /* 'fd' is no longer needed */
+    printf("copying %ld bytes\n", (long) len);
+    memcpy(addr, argv[2], len); /* Copy string to shared memory */
+    exit(EXIT_SUCCESS);
+
+    // 从共享内存中读取
+
+    fd = shm_open(argv[1], O_RDONLY, 0); /* Open existing object */
+    if (fd == -1)
+        errExit("shm_open");
+    /* Use shared memory object size as length argument for mmap()
+    and as number of bytes to write() */
+    if (fstat(fd, &sb) == -1)
+        errExit("fstat");
+    addr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (addr == MAP_FAILED)
+        errExit("mmap");
+    if (close(fd) == -1); /* 'fd' is no longer needed */
+        errExit("close");
+
+    // 删除共享内存
+    if (shm_unlink(argv[1]) == -1)
+        errExit("shm_unlink");
+```
+
