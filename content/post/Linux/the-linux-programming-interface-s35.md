@@ -1,6 +1,6 @@
 ---
 title: "Linux/Unix系统编程手册-笔记35. Sockets"
-date: 2020-01-12T18:05:00+08:00
+date: 2021-01-12T18:05:00+08:00
 tags: ["Linux"]
 categories: ["Linux系统编程手册阅读"]
 ---
@@ -82,4 +82,8 @@ int main(int argc, char **argv) {
 }
 ```
 
-Linux 抽象Socket命名空间：
+Linux 抽象Socket命名空间：将sun_path字段的第一个字节指定为null字节（\0）就可创建抽象绑定，不会在文件系统上创建该名字。
+
+
+## TCP/IP网络基础
+
