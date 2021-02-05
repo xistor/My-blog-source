@@ -85,5 +85,8 @@ int main(int argc, char **argv) {
 Linux 抽象Socket命名空间：将sun_path字段的第一个字节指定为null字节（\0）就可创建抽象绑定，不会在文件系统上创建该名字。
 
 
-## TCP/IP网络基础
+## Internet域socket
 
+Internet域的流式socket基于TCP,数据报socket基于UDP。
+
+这段直接看书，不想写了...
