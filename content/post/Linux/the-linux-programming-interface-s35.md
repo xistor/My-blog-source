@@ -15,7 +15,7 @@ Socket系统调用：
 
 ## 流式socket
 
-![overview](img/the-linux-programming-interface-s35/overview_socket.png)
+![overview](/img/the-linux-programming-interface-s35/overview_socket.png)
 
 类似我们生活中的电话通信。
 一个典型的服务应用会创建一个监听socket, 绑定到一个地址上，然后通过accept socket的链接来处理客户端的请求。
@@ -23,7 +23,7 @@ Socket系统调用：
 ## 数据报socket
 
 类似我们生活中的信件通信。
-![overview](img/the-linux-programming-interface-s35/datagram_socket.png)
+![overview](/img/the-linux-programming-interface-s35/datagram_socket.png)
 
 数据报socket虽然是无连接的，但是也可以使用connect(),连接后的socket可以使用write()或者send()直接发送到对端。只有会收到远端连接的那个socket发送的数据。connect()的作用是非对称的，只会影响调用connect()的socket,不会影响远端的socket。
 
@@ -39,7 +39,7 @@ struct sockaddr_un {
     char sun_path[108]; /* Null-terminated socket pathname */
 };
 ```
-sun_path指定socke名，bind()的时候会在此路径下创建一个文件。可以利用路径文件夹的权限来限制谁可以访问socket, 避免一些安全问题。  
+sun_path指定socket名，bind()的时候会在此路径下创建一个文件。可以利用路径文件夹的权限来限制谁可以访问socket, 避免一些安全问题。  
 
 `socketpair()`可以创建一个socket对,和管道类似，一般用于父子进程间的通信，socket对于其他进程并不可见。
 
