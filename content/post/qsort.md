@@ -19,16 +19,15 @@ void quickSort(vector<int>& nums, int left, int right) {
         
     }
 
-    int partition(vector<int>& nums, int left, int right) {
-        int pivot = left;
-        for (int i = left; i < right; ++i) {
-            if (nums[i] < nums[right]) 
-                swap(nums[pivot++], nums[i]);
-            cout << "i" << i << " p" << pivot << ":";
-        }
-        swap(nums[pivot], nums[right]);
-        return pivot;
+int partition(vector<int>& nums, int left, int right) {
+    int pivot = left;
+    for (int i = left; i < right; ++i) {
+        if (nums[i] < nums[right]) 
+            swap(nums[pivot++], nums[i]);
     }
+    swap(nums[pivot], nums[right]);
+    return pivot;
+}
 
 ```
 
