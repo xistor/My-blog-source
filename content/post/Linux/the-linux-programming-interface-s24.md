@@ -111,11 +111,11 @@ tstpHandler(int sig)
     if (sigprocmask(SIG_SETMASK, &prevMask, NULL) == -1)
         errExit("sigprocmask");         /* Reblock SIGTSTP */
 
-    // sigemptyset(&sa.sa_mask);           /* Reestablish handler */
-    // sa.sa_flags = SA_RESTART;
-    // sa.sa_handler = tstpHandler;
-    // if (sigaction(SIGTSTP, &sa, NULL) == -1) // （5）
-    //     errExit("sigaction");
+    sigemptyset(&sa.sa_mask);           /* Reestablish handler */
+    sa.sa_flags = SA_RESTART;
+    sa.sa_handler = tstpHandler;
+    if (sigaction(SIGTSTP, &sa, NULL) == -1) // （5）
+        errExit("sigaction");
 
     printf("Exiting SIGTSTP handler\n");
     errno = savedErrno;
