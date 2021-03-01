@@ -44,7 +44,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
     |PORT_READ|内容可读|
     |PORT_WRITE|内容可写|
     |PORT_EXEC|内容可执行|
-    port值需要和打开要映射的文件描述符时指定的权限相兼容。若用`O_WRONLY`打开一个文件，内存映射时只指定PORT_WRITE是不行的，因为硬件架构上就不允许内存页只读。若是私有映射，保护flag可以随意设置，因为不会牵扯到文件的读写。
+    port值需要和打开要映射的文件描述符时指定的权限相兼容。若用`O_WRONLY`打开一个文件，内存映射时只指定PORT_WRITE是不行的，因为硬件架构上就不允许内存页只写。若是私有映射，保护flag可以随意设置，因为不会牵扯到文件的读写。
 
 - `flags`: 控制内存映射的选项，有`MAP_PRIVATE`和`MAP_SHARED`等。
 - `fd`和`offset`:用于文件映射，用于指定映射的文件以及开始的偏移（需要页对齐）。在匿名映射时会忽略。
