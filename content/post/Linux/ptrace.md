@@ -21,7 +21,7 @@ https://man7.org/linux/man-pages/man2/ptrace.2.html
 
 要更容易的看懂例程，需要先了解以下x86的寄存器，32bit和64bit的寄存器存在一些不同,如下图(来自参考3 page27)
 
-![General Purpose Registers in 64-Bit Mode](/img/ptrace/64bit_reg.png)
+![General Purpose Registers in 64-Bit Mode](/img/ptrace/AMD_64bit_reg.png)
 
 32bit下常用的`eax`, `ebx`在64bit下对应为 `rax`, `rbx`，但是使用`eax`依然可以访问`rax`的低32位。  
 
@@ -52,7 +52,7 @@ main:
         ret
 ```
 
-可见64位上，系统调用的三个参数依次被放到了`%edi`, `%esi`, `%edx`, 中，这里只使用了寄存器的低32位，所以还是e开头。各架构在系统调用时用到的寄存器如下
+可见64位上，系统调用`write()`的三个参数依次被放到了`%edi`, `%esi`, `%edx` 中，这里只使用了寄存器的低32位，所以还是e开头。各架构在系统调用时用到的寄存器如下:
 
 |arch |	syscall number|	return|	arg0 | arg1| arg2| arg3| arg4| arg5|
 |-----|---------------|-------|------|-----|-----|-----|-----|-----|
@@ -96,7 +96,7 @@ int main()
 }
 ```
 
-程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT` 让程序继续运行。当系统调用发生时，内核会保存`rax`的原始内容，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址我们传入的为`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct`。  
+程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT` 让子进程继续运行。当系统调用发生时，内核会保存`rax`的原始内容，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址我们传入的为`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的每个数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct`。  
 
 
 运行输出
@@ -106,7 +106,7 @@ The child made a system call 59
 ```
 
 
-查阅系统调用表 https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl ， 系统调用为`execve`。
+查阅系统调用号表 https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl ， 系统调用为`execve`。
 
 
 看第二个例程：
@@ -181,6 +181,139 @@ bar.c	      foo.map	      libdemo.a		libtom.so     mod1.o	nice.o		 rtsched.cpp	 
 Write returned with 103
 
 ```
+
+第三例子，修改系统调用的参数，
+
+```c
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/user.h>
+#include <sys/syscall.h>
+#include <sys/reg.h>
+
+const int long_size = sizeof(long);
+void reverse(char *str)
+{   
+    int i, j;
+    char temp;
+    for(i = 0, j = strlen(str) - 2;
+        i <= j; ++i, --j) {
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+void getdata(pid_t child, long addr, char *str, int len)
+{
+    char *laddr;
+    int i, j;
+    union u {
+            long val;
+            char chars[long_size];
+    }data;
+    i = 0;
+    j = len / long_size;
+    laddr = str;
+    while(i < j) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          child, addr + i * 8,
+                          NULL);
+        memcpy(laddr, data.chars, long_size);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          child, addr + i * 8,
+                          NULL);
+        memcpy(laddr, data.chars, j);
+    }
+    str[len] = '\0';
+}
+
+void putdata(pid_t child, long addr, char *str, int len)
+{   
+    char *laddr;
+    int i, j;
+    union u {
+            long val;
+            char chars[long_size];
+    }data;
+    i = 0;
+    j = len / long_size;
+    laddr = str;
+    while(i < j) {
+        memcpy(data.chars, laddr, long_size);
+        ptrace(PTRACE_POKEDATA, child,
+               addr + i * 8, data.val);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        memcpy(data.chars, laddr, j);
+        ptrace(PTRACE_POKEDATA, child,
+               addr + i * 8, data.val);
+    }
+}
+
+int main()
+{
+    pid_t child;
+    child = fork();
+    if(child == 0) {
+        ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+        execl("/bin/ls", "ls", NULL);
+    }
+    else {
+        long orig_rax;
+        long params[3];
+        int status;
+        char *str, *laddr;
+        int toggle = 0;
+        while(1) {
+            wait(&status);
+            if(WIFEXITED(status))
+                break;
+            orig_rax = ptrace(PTRACE_PEEKUSER,
+                            child, 8 * ORIG_RAX,
+                            NULL);
+            if(orig_rax == SYS_write) {
+                if(toggle == 0) {
+                toggle = 1;
+                params[0] = ptrace(PTRACE_PEEKUSER,
+                                    child, 8 * RDI,
+                                    NULL);
+                params[1] = ptrace(PTRACE_PEEKUSER,
+                                    child, 8 * RSI,
+                                    NULL);
+                params[2] = ptrace(PTRACE_PEEKUSER,
+                                    child, 8 * RDX,
+                                    NULL);
+                str = (char *)calloc((params[2]+1), sizeof(char));
+                getdata(child, params[1], str,
+                        params[2]);
+                reverse(str);
+                putdata(child, params[1], str,
+                        params[2]);
+                }
+                else {
+                toggle = 0;
+                }
+            }
+        ptrace(PTRACE_SYSCALL, child, NULL, NULL);
+        }
+    }
+    return 0;
+}
+```
+
+程序使用 `PTRACE_POKEDATA` 修改传给`write()`的参数，`ssize_t write(int fd, const void *buf, size_t count)` 三个参数分别为要写入的文件描述符，buf指针, 写入的字节数。 所以`getdata()`的作用是调用`ptrace(PTRACE_POKEDATA,..)`以8个字节为单位取得参数`buf`指向的数据后，写入`str`指向的地址。之后反转字符串再写回去，就实现了上面的效果。
+
 
 参考：
 0. https://www.linuxjournal.com/article/6100
