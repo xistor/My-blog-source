@@ -65,7 +65,7 @@ main:
 
 完整的寄存器常用法表见：https://web.stanford.edu/class/cs107/guide/x86-64.html
 
-知道了这几个寄存器的一般用法，就可以看第一个例子了：
+知道了这几个寄存器的一般用法，就可以开始看例子了：
 
 ```c
 #include <sys/ptrace.h>
@@ -96,7 +96,7 @@ int main()
 }
 ```
 
-程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT` 让子进程继续运行。当系统调用发生时，内核会保存`rax`的原始内容，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址我们传入的为`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的每个数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct`。  
+程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT` 让子进程继续运行。当系统调用发生时，内核会保存`rax`的原始内容到内存中，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址我们传入的为`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的每个数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct`。  
 
 
 运行输出
@@ -169,7 +169,7 @@ int main()
    return 0;
 }
 ```
-这段程序使用 `ptrace(PTRACE_GETREGS`函数获取系统调用时所有寄存器的值。  
+和第一个例子区别不大，这段程序使用 `ptrace(PTRACE_GETREGS`函数获取系统调用时所有寄存器的值， 并打印出`rdi`, `rsi`, `rdx`中的值也就是`write()`的三个参数值和返回值。  
 
 输出类似于：
 ```
@@ -312,7 +312,268 @@ int main()
 }
 ```
 
-程序使用 `PTRACE_POKEDATA` 修改传给`write()`的参数，`ssize_t write(int fd, const void *buf, size_t count)` 三个参数分别为要写入的文件描述符，buf指针, 写入的字节数。 所以`getdata()`的作用是调用`ptrace(PTRACE_POKEDATA,..)`以8个字节为单位取得参数`buf`指向的数据后，写入`str`指向的地址。之后反转字符串再写回去，就实现了上面的效果。
+程序使用 `PTRACE_POKEDATA` 修改传给`write()`的参数，`ssize_t write(int fd, const void *buf, size_t count)` 三个参数分别为要写入的文件描述符，buf指针, 写入的字节数。 `getdata()`的作用是调用`ptrace(PTRACE_PEEKDATA,..)`以8个字节为单位取得参数`buf`指向的数据后，写入`str`指向的地址。之后反转字符串再调用`putdata()`使用`ptrace(PTRACE_POKEDATA,..)`写回去，就实现了上面的效果。  
+
+看完前几个例子，子进程开始时都调用了 `ptrace(PTRACE_TRACEME, 0, NULL, NULL)`来告诉内核对其追踪，但不是每个程序都会去调用这个的，而且我们经常随便拿来一个程序就用`strace`命令跟踪系统调用，那些程序里面也不会都调用了`PTRACE_TRACEME`吧。 要trace一个既有的进程也是可以的，只要使用`ptrace(PTRACE_ATTACH, ..)`就可以了。接下来我们就用`PTRACE_ATTACH`来跟踪一个进程。   
+
+首先写一个简单的程序供我们跟踪, 这个小程序会每两秒计数并输出。
+
+```c
+// counter
+
+#include<stdio.h>
+
+int main() {
+    for (int i = 0; i < 100; ++i) {
+        printf("Counter: %d\n", i);
+        sleep(2);
+    }
+    return 0;
+}
+```
+
+然后使用`PTRACE_ATTACH`写我们的追踪程序, 结合一下之前的例子，将所追踪程序的输出也截取出来。
+
+```c
+// trace_counter
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/reg.h>
+#include <sys/user.h>
+#include <sys/syscall.h>
+#include <string.h>
+
+int long_size = sizeof(long);
+
+void getdata(pid_t pid, long addr, char *str, int len)
+{
+    char *laddr;
+    int i, j;
+    union u {
+            long val;
+            char chars[long_size];
+    }data;
+    i = 0;
+    j = len / long_size;
+    laddr = str;
+    while(i < j) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          pid, addr + i * 8,
+                          NULL);
+        memcpy(laddr, data.chars, long_size);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          pid, addr + i * 8,
+                          NULL);
+        memcpy(laddr, data.chars, j);
+    }
+    str[len] = '\0';
+}
+
+
+int main(int argc, char *argv[])
+{   
+    long orig_rax, rax;
+    int status;
+    int insyscall = 0;
+    pid_t traced_process;
+    struct user_regs_struct regs;
+    long ins;
+    if(argc != 2) {
+        printf("Usage: %s <pid to be traced>\n", argv[0]);
+        exit(1);
+    }
+    traced_process = atoi(argv[1]);
+    ptrace(PTRACE_ATTACH, traced_process, NULL, NULL);
+
+    while(1) {
+        wait(&status);
+        if(WIFEXITED(status))
+            break;
+        orig_rax = ptrace(PTRACE_PEEKUSER, traced_process, 8 * ORIG_RAX, NULL);
+        if(orig_rax == SYS_write) {
+            if(insyscall == 0) {
+                /* Syscall entry */
+                insyscall = 1;
+                ptrace(PTRACE_GETREGS, traced_process,
+                    NULL, &regs);
+                printf("Write called with %lld, %lld, %lld\n", regs.rdi, regs.rsi, regs.rdx);
+                char *str = (char *)calloc((regs.rdx+1), sizeof(char));
+                getdata(traced_process, regs.rsi, str, regs.rdx);
+                printf("write string is : %s", str);
+            }
+            else { /* Syscall exit */
+                rax = ptrace(PTRACE_PEEKUSER, traced_process, 8 * RAX, NULL);
+                printf("Write returned with %ld\n", rax);
+                insyscall = 0;
+            }
+        }
+        ptrace(PTRACE_SYSCALL, traced_process, NULL, NULL);
+    }
+
+    ptrace(PTRACE_DETACH, traced_process, NULL, NULL);
+    
+    return 0;
+}
+
+```
+
+编译两个程序，然后在两个终端运行:  
+
+counter 的输出：
+```sh
+Counter: 0
+Counter: 1
+Counter: 2
+Counter: 3
+Counter: 4
+Counter: 5
+...
+```
+
+trace_counter 的输出：
+
+```sh
+Write called with 1, 28184592, 11
+write string is : Counter: 7
+Write returned with 11
+Write called with 1, 28184592, 11
+write string is : Counter: 8
+Write returned with 11
+Write called with 1, 28184592, 11
+write string is : Counter: 9
+Write returned with 11
+Write called with 1, 28184592, 12
+write string is : Counter: 10
+Write returned with 12
+
+...
+
+```
+
+
+
+设置断点：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/reg.h>
+#include <sys/user.h>
+#include <sys/syscall.h>
+#include <string.h>
+
+
+const int long_size = sizeof(long);
+
+void getdata(pid_t pid, long addr, char *str, int len)
+{
+    char *laddr;
+    int i, j;
+    union u {
+            long val;
+            char chars[long_size];
+    }data;
+    i = 0;
+    j = len / long_size;
+    laddr = str;
+    while(i < j) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          pid, addr + i * long_size,
+                          NULL);
+        memcpy(laddr, data.chars, long_size);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        data.val = ptrace(PTRACE_PEEKDATA,
+                          pid, addr + i * long_size,
+                          NULL);
+        memcpy(laddr, data.chars, j);
+    }
+    str[len] = '\0';
+}
+
+void putdata(pid_t child, long addr, char *str, int len)
+{   
+    char *laddr;
+    int i, j;
+    union u {
+            long val;
+            char chars[long_size];
+    }data;
+    i = 0;
+    j = len / long_size;
+    laddr = str;
+    while(i < j) {
+        memcpy(data.chars, laddr, long_size);
+        ptrace(PTRACE_POKEDATA, child,
+               addr + i * long_size, data.val);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        memcpy(data.chars, laddr, j);
+        ptrace(PTRACE_POKEDATA, child,
+               addr + i * long_size, data.val);
+    }
+}
+
+int main(int argc, char *argv[])
+{   pid_t traced_process;
+    struct user_regs_struct regs, newregs;
+    long ins;
+    /* int 0x80, int3 */
+    char code[] = {0xcd,0x80,0xcc,0};
+    char backup[8];
+    if(argc != 2) {
+        printf("Usage: %s <pid to be traced>\n", argv[0]);
+        exit(1);
+    }
+    traced_process = atoi(argv[1]);
+    ptrace(PTRACE_ATTACH, traced_process,
+           NULL, NULL);
+    wait(NULL);
+    ptrace(PTRACE_GETREGS, traced_process,
+           NULL, &regs);
+    /* Copy instructions into a backup variable */
+    getdata(traced_process, regs.rip, backup, long_size);
+    /* Put the breakpoint */
+    putdata(traced_process, regs.rip, code, 3);
+    /* Let the process continue and execute
+       the int 3 instruction */
+    ptrace(PTRACE_CONT, traced_process, NULL, NULL);
+    wait(NULL);
+    printf("The process stopped, putting back "
+           "the original instructions\n");
+    printf("Press <enter> to continue\n");
+    getchar();
+    putdata(traced_process, regs.rip, backup, long_size);
+    /* Setting the eip back to the original
+       instruction to let the process continue */
+    ptrace(PTRACE_SETREGS, traced_process,
+           NULL, &regs);
+    ptrace(PTRACE_DETACH, traced_process,
+           NULL, NULL);
+    return 0;
+}
+
+```
 
 
 参考：
@@ -321,3 +582,4 @@ int main()
 2. 寄存器列表 https://web.stanford.edu/class/cs107/guide/x86-64.html
 3. https://www.amd.com/system/files/TechDocs/24592.pdf
 4. https://theantway.com/2013/01/notes-for-playing-with-ptrace-on-64-bits-ubuntu-12-10/
+5. https://abda.nl/posts/understanding-ptrace/
