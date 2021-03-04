@@ -1,7 +1,6 @@
 ---
 title: "ptrace 笔记"
 date: 2021-03-02T22:01:00+08:00
-draft: true
 tags: ["Linux"]
 categories: ["Linux"]
 ---
@@ -464,7 +463,7 @@ Write returned with 12
 
 设置断点：
 
-```c
+```cpp
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ptrace.h>
@@ -540,7 +539,7 @@ int main(int argc, char *argv[])
     long ins;
     /* int 0x80, int3 */
     char code[] = {0xcd,0x80,0xcc,0};
-    char backup[8];
+    char backup[long_size];
     if(argc != 2) {
         printf("Usage: %s <pid to be traced>\n", argv[0]);
         exit(1);
@@ -566,15 +565,14 @@ int main(int argc, char *argv[])
     putdata(traced_process, regs.rip, backup, long_size);
     /* Setting the eip back to the original
        instruction to let the process continue */
-    ptrace(PTRACE_SETREGS, traced_process,
-           NULL, &regs);
-    ptrace(PTRACE_DETACH, traced_process,
-           NULL, NULL);
+    ptrace(PTRACE_SETREGS, traced_process, NULL, &regs);
+    ptrace(PTRACE_DETACH, traced_process, NULL, NULL);
     return 0;
 }
 
 ```
 
+设置断点的主要原理是读取程序的`rip`（instruction pointer）寄存器，将其指向的指令保存下来， 然后用`int3（0xCC）`指令替换掉原指令，当CPU遇到`int3`会发送`SIGTRAP`信号给调试进程，将进程stop。之后再将指令恢复，并将`rip`指回原处，程序就可以继续执行下去了。
 
 参考：
 0. https://www.linuxjournal.com/article/6100
