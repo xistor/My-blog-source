@@ -24,7 +24,7 @@ https://man7.org/linux/man-pages/man2/ptrace.2.html
 
 32bit下常用的`eax`, `ebx`在64bit下对应为 `rax`, `rbx`，但是使用`eax`依然可以访问`rax`的低32位。  
 
-在32位情况下，系统调用号被放到`%eax`, 传给系统调用的参数被依次放到 `%ebx`, `%ecx`, `%edx`, `%esi`, `%edi`。在64位系统下，情况有些不同，我们使用[godblolt](https://gcc.godbolt.org)将下面的C程序翻译成汇编代码看一下寄存器使用情况，
+在32位情况下，系统调用号被放到`eax`, 传给系统调用的参数被依次放到 `ebx`, `ecx`, `edx`, `esi`, `edi`。在64位系统下，情况有些不同，我们使用[godblolt](https://gcc.godbolt.org)将下面的C程序翻译成汇编代码看一下寄存器使用情况，
 
 ```c
 #include<unistd.h>
@@ -51,7 +51,7 @@ main:
         ret
 ```
 
-可见64位上，系统调用`write()`的三个参数依次被放到了`%edi`, `%esi`, `%edx` 中，这里只使用了寄存器的低32位，所以还是e开头。各架构在系统调用时用到的寄存器如下:
+可见64位上，系统调用`write()`的三个参数依次被放到了`edi`, `esi`, `edx` 中，这里只使用了寄存器的低32位，所以还是e开头。各架构在系统调用时用到的寄存器如下:
 
 |arch |	syscall number|	return|	arg0 | arg1| arg2| arg3| arg4| arg5|
 |-----|---------------|-------|------|-----|-----|-----|-----|-----|
@@ -62,7 +62,7 @@ main:
 
 
 
-完整的寄存器常用法表见：https://web.stanford.edu/class/cs107/guide/x86-64.html
+完整的寄存器常用法表见： https://web.stanford.edu/class/cs107/guide/x86-64.html  
 
 知道了这几个寄存器的一般用法，就可以开始看例子了：
 
@@ -95,7 +95,7 @@ int main()
 }
 ```
 
-程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT` 让子进程继续运行。当系统调用发生时，内核会保存`rax`的原始内容到内存中，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址我们传入的为`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的每个数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct`。  
+程序的主进程会追踪子进程的系统调用，将其系统调用号打印出来，然后调用`ptrace(PTRACE_CONT,...)` 让子进程继续运行。当系统调用发生时，内核会保存`rax`的原始内容到内存中，里面的内容就是系统调用号，可以从子进程的USER段读取出来，其偏移地址就是我们传入的`8 * ORIG_RAX`， `ORIG_RAX`定义在`sys/reg.h`文件中，其定义为`#define ORIG_RAX 15` ，因为64bit系统里，USER中的每个数据为8个字节，而orig_rax是第15个数据。USER的数据结构体定义在/usr/include/x86_64-linux-gnu/sys/user.h `struct user_regs_struct` 可以看一下。  
 
 
 运行输出
@@ -168,7 +168,7 @@ int main()
    return 0;
 }
 ```
-和第一个例子区别不大，这段程序使用 `ptrace(PTRACE_GETREGS`函数获取系统调用时所有寄存器的值， 并打印出`rdi`, `rsi`, `rdx`中的值也就是`write()`的三个参数值和返回值。  
+和第一个例子区别不大，这段程序使用 `ptrace(PTRACE_GETREGS, ...)`函数获取系统调用时所有寄存器的值， 并打印出`rdi`, `rsi`, `rdx`中的值也就是`write()`的三个参数值, 在`write()`返回的时候打印出`rax`中的返回值。  
 
 输出类似于：
 ```
@@ -311,9 +311,21 @@ int main()
 }
 ```
 
+输出类似于下面这样
+```sh
+$ ls
+
+a.out   fun.c 
+
+$ ./a.out
+
+c.nuf   tuo.a
+
+```
+
 程序使用 `PTRACE_POKEDATA` 修改传给`write()`的参数，`ssize_t write(int fd, const void *buf, size_t count)` 三个参数分别为要写入的文件描述符，buf指针, 写入的字节数。 `getdata()`的作用是调用`ptrace(PTRACE_PEEKDATA,..)`以8个字节为单位取得参数`buf`指向的数据后，写入`str`指向的地址。之后反转字符串再调用`putdata()`使用`ptrace(PTRACE_POKEDATA,..)`写回去，就实现了上面的效果。  
 
-看完前几个例子，子进程开始时都调用了 `ptrace(PTRACE_TRACEME, 0, NULL, NULL)`来告诉内核对其追踪，但不是每个程序都会去调用这个的，而且我们经常随便拿来一个程序就用`strace`命令跟踪系统调用，那些程序里面也不会都调用了`PTRACE_TRACEME`吧。 要trace一个既有的进程也是可以的，只要使用`ptrace(PTRACE_ATTACH, ..)`就可以了。接下来我们就用`PTRACE_ATTACH`来跟踪一个进程。   
+前几个例子，子进程开始时都调用了 `ptrace(PTRACE_TRACEME, 0, NULL, NULL)`来告诉内核对其追踪，但不是每个程序都会去调用这个的，而且我们经常随便拿来一个程序就用`strace`命令跟踪系统调用，那些程序里面也不会都调用了`PTRACE_TRACEME`吧。 要trace一个既有的进程也是可以的，只要使用`ptrace(PTRACE_ATTACH, ..)`就可以了。接下来我们就用`PTRACE_ATTACH`来跟踪一个进程。   
 
 首先写一个简单的程序供我们跟踪, 这个小程序会每两秒计数并输出。
 
@@ -331,7 +343,7 @@ int main() {
 }
 ```
 
-然后使用`PTRACE_ATTACH`写我们的追踪程序, 结合一下之前的例子，将所追踪程序的输出也截取出来。
+然后使用`PTRACE_ATTACH`写我们的追踪程序, 结合一下之前的例子，将被追踪程序的输出也截取出来。
 
 ```c
 // trace_counter
@@ -574,7 +586,7 @@ int main(int argc, char *argv[])
 
 设置断点的主要原理是读取程序的`rip`（instruction pointer）寄存器，将其指向的指令保存下来， 然后用`int3（0xCC）`指令替换掉原指令，当CPU遇到`int3`会发送`SIGTRAP`信号给调试进程，将进程stop。之后再将指令恢复，并将`rip`指回原处，程序就可以继续执行下去了。
 
-参考：
+参考：  
 0. https://www.linuxjournal.com/article/6100
 1. 系统调用号表 https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl
 2. 寄存器列表 https://web.stanford.edu/class/cs107/guide/x86-64.html
