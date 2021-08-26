@@ -1,6 +1,6 @@
 ---
 title: "IKEV2 vpn 配置备忘"
-date: 2020-05-27T23:03:16+08:00
+date: 2021-08-27T23:03:16+08:00
 tags: ["vpn"]
 categories: ["network"]
 ---
