@@ -75,9 +75,10 @@ conn android_xauth_psk
 
 ```
 
-### 4.
+## 4.
 
 android 客户端登录 
 
-vpn类型选 `Ipsec Xauth PSK` 
+vpn类型选 `Ipsec Xauth PSK`  
+
 Ipsec预分享密钥 填`ipsec.secrets`中的PSK 
