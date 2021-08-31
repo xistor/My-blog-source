@@ -1,6 +1,6 @@
 ---
 title: "IKEV2 vpn 配置备忘"
-date: 2021-08-27T23:03:16+08:00
+date: 2021-08-26T23:03:16+08:00
 tags: ["vpn"]
 categories: ["network"]
 ---
@@ -75,9 +75,10 @@ conn android_xauth_psk
 
 ```
 
-### 4.
+## 4.
 
 android 客户端登录 
 
-vpn类型选 `Ipsec Xauth PSK` 
+vpn类型选 `Ipsec Xauth PSK`  
+
 Ipsec预分享密钥 填`ipsec.secrets`中的PSK 
