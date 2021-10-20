@@ -22,7 +22,7 @@ categories: ["Linux系统编程手册阅读"]
 **ACL_MASK**
 该值记录了可由 ACL_USER、ACL_GROUP_OBJ以及ACL_GROUP型ACE所能授予的最高权限。这一项设立的目的在于即使运行并无ACL概念的应用程序，也能保障其行为的一致性。当ACL包含标记类型为ACL_MASK的ACE时：
 - 调用chmod()对传统组权限所做的变更，会改变ACL_MASK（而非ACL_GROUP_OBJ）
-- 调用stat(),在st_mode字段的组权限爱你位中会返回ACL_MASK权限。
+- 调用stat(),在st_mode字段的组权限位中会返回ACL_MASK权限。
 
 但是正是如此，假设某文件设置了如下ACL
 
