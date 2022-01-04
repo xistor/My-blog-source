@@ -6,11 +6,11 @@ categories: ["6.s081"]
 ---
 
 
-Fall 2021 6.S081中视频还是20年的，用的GDB调试的部分没有看到比较清除的配置过程，整理了下配置过程。
+Fall 2021 6.S081中视频还是20年的，用的GDB调试的部分没有看到比较清楚的配置过程，整理了下配置过程。
 
 ## 1. riscv64-unknown-elf-gdb
 
-2020 Lecture 5 视频中用的`riscv64-unknown-elf-gdb`，实际在tool page 中已经安装了`gdb-multiarch`,估计在21课程中已经改用这个了，用这个就好了， 如果没有就`sudo apt install gdb-multiarch`。
+2020 Lecture 5 视频中用的`riscv64-unknown-elf-gdb`，实际在lab 一开始的tool page 中已经安装了`gdb-multiarch`,估计在21课程中已经改用这个了，用这个就好了， 如果没有就`sudo apt install gdb-multiarch`。
 
 ## 2. gdbinit
 
@@ -39,9 +39,9 @@ set riscv use-compressed-breakpoints yes
 
 ![gdb-debug](/img/xv6-gdb/gdb-debug.png)
 
-ex.
+e.g.
 
-在 Lab: page tables 中一开始报错如下：
+在做 Lab: page tables 时，添加了自己写的代码后，一开始报错如下，用GDB来找出原因。
 
 ```
 panic: freewalk: leaf
