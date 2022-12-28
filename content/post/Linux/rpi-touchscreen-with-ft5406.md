@@ -1,6 +1,6 @@
 ---
 title: "适配树梅派4.3寸LCD屏幕的触摸"
-date: 2022-12-25T21:33:00+08:00
+date: 2022-12-29T21:33:00+08:00
 tags: ["Linux"]
 categories: ["Linux Driver"]
 ---
@@ -341,7 +341,7 @@ MODULE_LICENSE("GPL v2");
 ### 效果
 
 
-{{% youtube "80xRTaC3wfM" %}}
+{{< youtube "80xRTaC3wfM" >}}
 
 
 但实际这个驱动也是只是单点触摸...有空再改。
