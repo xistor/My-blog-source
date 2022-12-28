@@ -334,10 +334,8 @@ MODULE_LICENSE("GPL v2");
 编译好，就可以烧进板子了，有个坑就是lvgl不支持多点触摸，要用lvgl的话所以驱动里得加上这个：
 
 ```c
-
 	input_set_abs_params(ts->input_dev,ABS_X,0,SCREEN_WIDTH,0,0);
     input_set_abs_params(ts->input_dev,ABS_Y,0,SCREEN_HEIGHT,0,0);
-
 ```
 
 ### 效果
@@ -348,7 +346,7 @@ MODULE_LICENSE("GPL v2");
 
 但实际这个驱动也是只是单点触摸...有空再改。
 
-参考：
+参考：  
 https://github.com/Ysurac/raspberry_kernel_mptcp/blob/master/drivers/input/touchscreen/rpi-ft5406.c  
 https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-reduced-schematics.pdf  
 https://github.com/mangopi-sbc/MQ  

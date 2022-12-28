@@ -29,3 +29,4 @@ jobs:
           external_repository: xistor/xistor.github.io
           publish_branch: master
           publish_dir: ./public
+          cname: xistor.top
