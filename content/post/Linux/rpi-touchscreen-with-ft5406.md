@@ -1,6 +1,6 @@
 ---
 title: "适配树梅派4.3寸LCD屏幕的触摸"
-date: 2022-12-29T21:33:00+08:00
+date: 2022-12-25T21:33:00+08:00
 tags: ["Linux"]
 categories: ["Linux Driver"]
 ---
@@ -334,8 +334,8 @@ MODULE_LICENSE("GPL v2");
 编译好，就可以烧进板子了，有个坑就是lvgl不支持多点触摸，要用lvgl的话所以驱动里得加上这个：
 
 ```c
-	input_set_abs_params(ts->input_dev,ABS_X,0,SCREEN_WIDTH,0,0);
-    input_set_abs_params(ts->input_dev,ABS_Y,0,SCREEN_HEIGHT,0,0);
+input_set_abs_params(ts->input_dev,ABS_X,0,SCREEN_WIDTH,0,0);
+input_set_abs_params(ts->input_dev,ABS_Y,0,SCREEN_HEIGHT,0,0);
 ```
 
 ### 效果
