@@ -1,0 +1,455 @@
+---
+title: "小主机配置笔记"
+date: 2023-06-21T22:03:16+08:00
+tags: ["x86", "eq12"]
+categories: ["Linux"]
+---
+
+决定淘汰树梅派4B，上x86小主机了，整理下配置过程，免的下次重装系统再从头开始。暂时没有win的需求，所以只装了Ubuntu22.04，系统安装略。
+
+
+
+## 挂载硬盘
+
+暂时还是外置usb硬盘。
+
+
+```sh
+sudo mkdir /media/disk1
+sudo chown x:x /media/disk1
+```
+
+查看UUID
+
+```
+$ sudo blkid 
+
+/dev/sda1: UUID="31c2f09d-e3e6-4e46-bb08-0370165c4f96" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="LVM" PARTUUID="522e1944-2b81-4574-90f5-9da62a622ddd"
+```
+
+添加到/etc/fstab， 开机挂载
+
+```
+UUID=31c2f09d-e3e6-4e46-bb08-0370165c4f96 /media/disk ext4 defaults,auto,users,rw,nofail 0 0
+```
+
+重启。
+
+## FTP Server
+
+安装 vsftpd
+
+```
+sudo apt install vsftpd
+```
+
+修改ftp用户的home目录，也就是ftp登录的时候看到的目录。
+```sh
+sudo usermod -d /media/disk3/ ftp
+```
+
+
+限制ftp只能访问其home目录
+编辑/etc/vsftpd.conf
+
+```
+chroot_local_user=YES
+chroot_list_file=/etc/vsftpd.chroot_list
+```
+
+创建 vsftpd.chroot_list, 添加ftp用户
+
+
+```sh
+$ cat /etc/vsftpd.chroot_list
+ftp
+
+```
+
+修改ftp密码
+```sh
+sudo passwd ftp
+```
+
+登了下报错500
+
+```
+500 OOPS: vsftpd: refusing to run with writable root inside chroot()
+```
+解决方法是修改 /etc/pam.d/vsftpd, 将
+
+```
+auth	required	pam_shells.so
+```
+
+修改为
+
+```
+auth	required	pam_nologin.so
+```
+
+最后重启ftp服务
+
+```sh
+sudo systemctl restart vsftpd.service
+```
+
+使用用户名：ftp和前面设置的密码登录。 
+
+
+## 安装Docker
+
+官网步骤 https://docs.docker.com/engine/install/ubuntu/
+
+```sh
+ sudo apt-get update
+ sudo apt-get install ca-certificates curl gnupg
+```
+
+添加 Docker  GPG key:
+
+```sh
+ sudo install -m 0755 -d /etc/apt/keyrings
+
+ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+ sudo chmod a+r /etc/apt/keyrings/docker.gpg
+```
+
+
+```sh
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+```
+
+安装
+```
+sudo apt-get update
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+
+添加权限
+
+```
+sudo groupadd docker
+sudo usermod -aG docker $USER
+
+```
+
+验证
+
+```
+docker run hello-world
+```
+
+## 配置服务
+
+使用docker-compose同时启动多个服务， 按照功能分成了几块，每种服务对应一个 docker-compose.yml
+
+### 存储服务
+
+```
+version: '3.5'
+
+services:
+  db:
+    image: mariadb:10.5
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: always
+    volumes:
+      - ./nextcloud/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=xxx
+      - MYSQL_PASSWORD=xxx
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+  nextcloud:
+    image: nextcloud:latest
+    #command: bash -c 'chown www-data:www-data /var/www/html/data'
+    volumes:
+      - ./nextcloud:/var/www/html:rw # moutn nextcloud files folder
+      - /media/disk2/nextcloud:/var/www/html/data:rw # mount your personal data folder
+      - /media/disk3:/media:rw
+
+    links:
+      - db
+    environment:
+      - MYSQL_PASSWORD=xxx
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=db
+    restart: always
+    ports:
+      - 8000:80
+
+  transmission:
+    image: ghcr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - TRANSMISSION_WEB_HOME=/ui/transmissionic #optional
+      - USER=x #optional
+      - PASS=xxx #optional
+      #- WHITELIST=iplist #optional
+      #- HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - ./transmission:/config
+      - ./transmission/ui:/ui
+      - /media/disk3:/downloads
+      - /media/disk3/torrent:/watch
+    ports:
+      - 8002:9091
+      - 51413:51413
+      - 51413:51413/udp
+
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:latest
+    container_name: syncthing
+    hostname: syncthing #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./syncthing/config:/config
+      - /media/disk2/syncthing/data1:/data1
+
+    ports:
+      - 8004:8384
+      - 22000:22000/tcp
+      - 22000:22000/udp
+      - 21027:21027/udp
+    restart: unless-stopped
+
+  
+```
+
+包括nextcloud、transmission、syncthing这几个服务。
+
+transmission的 web ui需要单独下载 https://github.com/6c65726f79/Transmissionic/releases， 解压后放到./transmission/ui目录下。
+
+
+启动各项服务：
+
+```sh
+docker compose up -d
+```
+
+
+修改nextcloud/config/config.php， 添加信任域名
+
+```
+'trusted_domains' => 
+  array (
+    0 => '192.168.123.201:8000',
+    1 => 'nc.xistor.top',
+  ),
+
+
+```
+
+### 导航
+
+Heimdall导航页
+
+```
+version: "3.5"
+services:
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./heimdall/config:/config
+    ports:
+      - 8006:80
+      - 8007:443
+    restart: unless-stopped
+
+```
+
+
+### 媒体
+
+jellyfin 媒体中心
+
+
+```
+version: '3.5'
+
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      # - JELLYFIN_PublishedServerUrl=192.168.0.5 #optional
+    volumes:
+      - ./jellyfin/library:/config
+      - /media/disk3/tv:/data/tvshows
+      - /media/disk3/movie:/data/movies
+    ports:
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    restart: unless-stopped
+
+```
+
+### 笔记
+
+为知笔记
+
+```
+version: '3.5'
+
+service:
+
+  wiz:
+    image: wiznote/wizserver
+    container_name: wiz
+    ports:
+      - 8010:80
+      - 9269:9269/udp
+    volumes:
+      - /media/disk2/wizdata:/wiz/storage
+      - /etc/localtime:/etc/localtime
+    restart: always
+    stdin_open: true
+    tty: true
+
+
+```
+
+## 定时任务
+
+
+定时更新证书， vps那边使用acme.sh申请的免费证书，会定时更新，这边定时同步。需要放到/root下所以使用sudo
+
+
+```sh
+$ sudo mkdir /root/certs
+$ sudo crontab -e
+
+35 8   22  *  * bash /home/x/bin/update_key.sh
+```
+
+update_key.sh的内容
+
+```
+#!/bin/bash
+
+scp -i /home/x/.ssh/id_rsa root@123.123.123.123:/root/certs/xistor.top* /root/certs/
+
+# 重启服务
+service frpc restart 
+cd /opt/docker-comp/stroge/ &&  docker-compose restart
+...
+```
+
+
+## FRP
+
+仅涉及客户端配置
+
+下载frpc https://github.com/fatedier/frp/releases
+
+
+开机启动frpc, 新建systemd 服务 /etc/systemd/system/frpc.service
+
+```
+[Unit]
+Description=Frp Client Service
+After=network.target
+
+[Service]
+TimeoutStartSec=30
+WorkingDirectory=/home/x/bin/frp
+ExecStart=/home/x/bin/frp/frpc -c /home/x/bin/frp/frpc.ini
+ExecReload=/home/x/bin/frp/frpc reload -c /home/x/bin/frp/frpc.ini
+Restart=on-failure
+ReStartSec = 60
+
+[Install]
+WantedBy=multi-user.target
+```
+使用frpc 内网穿透，并将http转成https, 下面是frpc.ini 的配置。
+
+```
+[common]
+
+#frps 服务器地址、端口
+server_addr = xxx.xx
+server_port = 7766
+token = xxxxxx
+login_fail_exit = false
+
+[ssh]
+type = tcp
+local_ip = 127.0.0.1
+local_port = 22
+remote_port = 6666
+
+
+#子域名配置
+
+[next cloud https]
+type = https
+local_ip = 127.0.0.1
+local_port = 80
+subdomain = nc
+
+plugin = https2http
+# 转换成 http 后，发送到本机的80端口
+plugin_local_addr = 127.0.0.1:80
+
+# 指定代理方式为 frp
+plugin_header_X-From-Where = frp
+# 指定证书的路径
+plugin_crt_path = /root/certs/xistor.top.cer
+plugin_key_path = /root/certs/xistor.top.key
+
+
+
+[wiz note https]
+type = https
+local_ip = 127.0.0.1
+local_port = 8080
+subdomain = wiz
+
+
+plugin = https2http
+plugin_local_addr = 127.0.0.1:8080
+#plugin_host_header_rewrite = 127.0.0.1
+plugin_header_X-From-Where = frp
+plugin_crt_path = /root/certs/xistor.top.cer
+plugin_key_path = /root/certs/xistor.top.key
+
+```
+
+启动服务
+
+```shell
+systemctl start  frpc.service
+```
+
+开机启动
+
+```shell
+systemctl enable  frpc.service
+```
+
