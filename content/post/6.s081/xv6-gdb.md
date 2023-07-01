@@ -37,7 +37,8 @@ set riscv use-compressed-breakpoints yes
 在一个终端`make qemu-gdb` 之后，在另一个终端的lab目录内执行`gdb-multiarch`，
 其他的根据视频中的来就好了。
 
-![gdb-debug](/img/xv6-gdb/gdb-debug.png)
+{{< figure src="/img/xv6-gdb/gdb-debug.png"  class="center" title="gdb-debug">}}
+
 
 e.g.
 

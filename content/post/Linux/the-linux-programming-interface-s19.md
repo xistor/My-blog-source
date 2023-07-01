@@ -14,7 +14,10 @@ categories: ["Linux系统编程手册阅读"]
 另一种是实时信号，信号取值区间SIGRTMIN~SIGRTMAX，没有明确的含义，而是由使用者自己来决定如何使用。
 
 定义的信号如下表，signal number列中字母代表平台架构，S=Sun SPARC, A=Digital Alpha, M=MIPS, P=HP PA_RISC
-![信号表](/img/the-linux-programming-interface-s19/signal_number.png)
+
+
+{{< figure src="/img/the-linux-programming-interface-s19/signal_number.png"  class="center" title="信号表" width="600">}}
+
 
 ## 改变信号的处置方式
 

@@ -34,10 +34,11 @@ A fatal error occurred: Failed to connect to ESP32: Timed out waiting for packet
 就在我无计可施时，无奈把杜邦线的GND换了个插...坑爹啊...  
 
 网上几乎所有的教程都用了下图这种连接方式，我也是按照这个连的。
-![esp32-cam 下载](/img/esp32-cam/esp32-cam.png)  
+
+{{< figure src="/img/esp32-cam/esp32-cam.png"  class="center" title="esp32-cam 下载 ✘" width="500">}}
 
 但是我这样连接是不能下载固件的，只有把usb转TTL的GND和esp32-cam的5v旁边的GND连接才可以下载（如下图），可能是因为这个模块是个寨版吧..上边都没有AI thinker的标志。
 
-![esp32-cam 下载](/img/esp32-cam/esp32-cam-mod.png)
+{{< figure src="/img/esp32-cam/esp32-cam-mod.png"  class="center" title="esp32-cam 下载 ✔" width="500">}}
 
 总之，固件烧写这关算是过了。

@@ -52,15 +52,15 @@ ssize_t msgrcv(int msqid, void *msgp, size_t maxmsgsz, long msgtyp, int msgflg);
 
 ## 使用System V消息队列作为CS结构应用通信方式：
 1. 客户端和服务端都使用同一个消息队列，发给不同客户端的消息使用消息类型（messag type）来区分，一般选用客户端的进程ID作为消息类型，客户端选择和自己进程id相同的消息收取，一般使用`1`作为发给服务端的消息类型。
-![使用一个消息队列](/img/the-linux-programming-interface-s30/one_message_queue.png)
+
+{{< figure src="/img/the-linux-programming-interface-s30/one_message_queue.png"  title="使用一个消息队列" class="center" width="600" >}}
 
 结构如上图，这种方式存在两个问题，一个是消息比较多的时候，容易造成消息队列阻塞，造成死锁。
 第二个是，一个恶意的客户端如果往消息队列填入大量垃圾消息，很容易造成服务端不响应。
 
 2.每个客户端使用一个消息队列，一般来说，服务端会先创建一个消息队列，供客户端将自己创建的消息队列标识符发送给服务端。可能存在的问题就是系统中消息队列的数量是有限制的。
 
-![每个客户端使用一个消息队列](/img/the-linux-programming-interface-s30/per_mq.png)
-
+{{< figure src="/img/the-linux-programming-interface-s30/per_mq.png"  title="每个客户端使用一个消息队列" class="center" width="600" >}}
 
 ## Exercises
 

@@ -98,11 +98,12 @@ main(int argc, char *argv[])
 
 可供监控的事件如下：
 
-![事件](/img/the-linux-programming-interface-s18/events.png)
+{{< figure src="/img/the-linux-programming-interface-s18/events.png"  class="center" title="事件" width="600">}}
 
 read()返回buf结构如下:
 
-![返回的buf](/img/the-linux-programming-interface-s18/return_buf.png)
+
+{{< figure src="/img/the-linux-programming-interface-s18/return_buf.png"  class="center" title="返回的buf" width="400">}}
 
 其中每个结构体为：
 

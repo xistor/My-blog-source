@@ -88,7 +88,8 @@ fastboot flashall -w
 
 1. 刷完之后遇到了这个问题,显示“Android Setup keeps stopping”
 
-![error](/img/add_opengapps_to_aosp/error.png)
+{{< figure src="/img/add_opengapps_to_aosp/error.png"  class="center" title="error" width="500">}}
+
 
 打开ADB,看log发现是权限问题
 

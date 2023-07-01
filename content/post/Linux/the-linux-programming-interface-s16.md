@@ -9,7 +9,8 @@ categories: ["Linux系统编程手册阅读"]
 
 ## ACL的结构
 如下图:
-![acl](/img/the-linux-programming-interface-s16/an_access_control_list.png)
+
+{{< figure src="/img/the-linux-programming-interface-s16/an_access_control_list.png"  class="center" title="acl" width="800">}}
 
 每条记录由3部分组成：
 - 标记类型：标记该记录作用于一个用户、组，还是其他类别的用户。
@@ -110,7 +111,8 @@ other::---
 
 ## ACL API
 
-![ACL库函数及数据结构](/img/the-linux-programming-interface-s16/ACL_library_function_and_datastrures.png)
+
+{{< figure src="/img/the-linux-programming-interface-s16/ACL_library_function_and_datastrures.png"  class="center" title="ACL库函数及数据结构" >}}
 
 ACL 的API比较繁杂，如图，需要首先从文件中将ACL读入内存中，然后从中依次get每条记录，从ACE中读取/修改标记类型、获取/修改标记限定符、获取/修改权限分别对应下面三组函数。
 

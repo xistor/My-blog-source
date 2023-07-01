@@ -7,7 +7,8 @@ categories: ["Linux系统编程手册阅读"]
 
 进程这部分主要有几个点：进程的创建、进程的终止、父进程和子进程之间的关系等。开局先来一张图
 
-![overview](/img/the-linux-programming-interface-s21/overview.png)
+
+{{< figure src="/img/the-linux-programming-interface-s21/overview.png" title="overview" class="center"  width="500">}}
 
 图中把fork()、exec()、wait()、exit()的功能展示的很清楚了，有几个点需要注意:
 

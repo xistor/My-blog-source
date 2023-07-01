@@ -12,16 +12,19 @@ SDK： Tina SDK
 ### 缘由
 因为有一块d1s-mq的板子， 板载了树梅派15pin的DSI屏幕插座，所以淘了一块树梅派4.3寸的屏幕。 
 
-![rpi lcd](/img/rpi-touchscreen-with-ft5406/rpi-4.3-lcd.jpg)
+
+{{< figure src="/img/rpi-touchscreen-with-ft5406/rpi-4.3-lcd.jpg"  class="center" title="树梅派15pin DSI屏幕" width="600" >}}
 
 点亮屏幕，按照这个帖子 https://bbs.aw-ol.com/topic/808/%E5%B0%8F%E9%BA%BB%E9%9B%80%E7%9B%B4%E6%8E%A5%E9%A9%B1%E5%8A%A8%E6%A0%91%E8%8E%93%E6%B4%BE%E7%9A%84dsi%E5%B1%8F?lang=zh-CN 中的dts配置就可以了。
 
 然而这样屏幕的触摸还没有用起来。本着树莓派能用，那别的板子一定也可以用的心态，查了下树莓派的硬件原理图，看到排线里有SCL0和SDA0，
-![mq mipi](/img/rpi-touchscreen-with-ft5406/rpi-mipi.png)
+
+{{< figure src="/img/rpi-touchscreen-with-ft5406/rpi-mipi.png"   class="center" title="树梅派mipi接口" width="300">}}
 
 这应该就是读取触摸数据的I2C接口了，本来想移植一个现成的驱动就好了，结果背面芯片磨的啥都没有，找来了树莓派的驱动翻了下，看来应该是FT5406 （https://github.com/Ysurac/raspberry_kernel_mptcp/blob/master/drivers/input/touchscreen/rpi-ft5406.c）。  因为15pin的排线中并没有中断引脚，所以EDT官方的驱动也用不了, 树莓派的驱动是使用轮询的方式以60fps的速度去读取触摸数据。那需要做的就是把树梅派的驱动改一下，用在mq上。mq的引脚是这么连的：
 
-![mq mipi](/img/rpi-touchscreen-with-ft5406/mq-mipi.png)
+
+{{< figure src="/img/rpi-touchscreen-with-ft5406/mq-mipi.png"  class="center" title="mq-d1的mipi接口" width="300">}}
 
 是连到TWI2的。
 

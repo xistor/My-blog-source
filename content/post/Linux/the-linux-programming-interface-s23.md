@@ -18,7 +18,9 @@ categories: ["Linux系统编程手册阅读"]
 - 除了数据，还可以共享文件描述符、信号处理、当前工作目录、以及用户ID和组ID，优劣视应用而定。
 
 线程在进程中执行时的内存布局如下图：
-![线程在进程内运行时内存布局](/img/the-linux-programming-interface-s23/four_threads_in_a_process.png)
+
+{{< figure src="/img/the-linux-programming-interface-s23/four_threads_in_a_process.png" title="线程在进程内运行时内存布局" class="center" width="500" >}}
+
 
 线程之间共享的信息：
 
@@ -402,7 +404,10 @@ void *pthread_getspecific(pthread_key_t key);
 
 `pthread_setspecific()`的参数`key`是调用`pthread_key_create()`分配的key,`value`通常指向一块由调用者分配的内存，线程终止时，会自动调用`create`时指定的`destructor()`去释放`value`指向的内存。   
 下图是线程特有数据的实现结构，如图，Pthread为每个线程维护一个指针数组，指针数组内每一个成员都指向一个函数的特有数据。key1所对应的函数的特有数据数据保存在tsd[1]指向的内存中。  
-![线程特有数据的实现结构](/img/the-linux-programming-interface-s23/tsd.png)
+
+{{< figure src="/img/the-linux-programming-interface-s23/tsd.png" title="线程特有数据的实现结构" class="center"  width="500">}}
+
+
 其实根据上面这个图，之前对key的总结有点补充，key是用来区分函数的，但并不代表一个函数内只能用一个key，一个函数中可以创建和指定多个key。但上限有限，linux中key最多可以1024个。通常只用一个key就可以了，将函数要用的多个特有数据值放到一个结构中。
 
 ### 线程局部存储(thread-local Storage)

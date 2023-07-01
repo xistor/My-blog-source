@@ -20,7 +20,8 @@ https://man7.org/linux/man-pages/man2/ptrace.2.html
 
 要更容易的看懂例程，需要先了解以下x86的寄存器，32bit和64bit的寄存器存在一些不同,如下图(来自参考3 page27)
 
-![General Purpose Registers in 64-Bit Mode](/img/ptrace/AMD_64bit_reg.png)
+
+{{< figure src="/img/ptrace/AMD_64bit_reg.png"  class="center" title="General Purpose Registers in 64-Bit Mode" width="600">}}
 
 32bit下常用的`eax`, `ebx`在64bit下对应为 `rax`, `rbx`，但是使用`eax`依然可以访问`rax`的低32位。  
 

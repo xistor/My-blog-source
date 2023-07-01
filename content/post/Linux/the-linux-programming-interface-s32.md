@@ -20,7 +20,7 @@ categories: ["Linux系统编程手册阅读"]
 
 使用 `/proc/PID/maps` 文件可以查看程序的内存布局。
 
-![内存布局](/img/the-linux-programming-interface-s32/share_mem_location.png)
+{{< figure src="/img/the-linux-programming-interface-s32/share_mem_location.png"  title="内存布局" class="center"  width="500">}}
 
 共享内存被attach到虚拟内存中的未分配区域，也就是堆的生长方向和栈的生长方向之间。
 
@@ -39,7 +39,8 @@ void *shmat(int shmid, const void *shmaddr, int shmflg);
 
 共享内存在不同进程中attach的内存地址不同，所以当在共享内存中保存一个指向共享内存中另一地址的指针时，需要使用相对地址，而不是绝对地址。
 
-![共享内存中保存指针](/img/the-linux-programming-interface-s32/share_mem_location.png)
+
+{{< figure src="/img/the-linux-programming-interface-s32/share_mem_location.png"  title="共享内存中保存指针" class="center" width="500" >}}
 
 如图baseaddr为共享内存起始地址，target是共享内存中的一个绝对地址，比如0x7fe950304000。如果我们想保存它那像`*p = target;`这样是不对的，应该为`*p = (target - baseaddr);` ,解引用指针时 `targrt = baseaddr + *p`。
 

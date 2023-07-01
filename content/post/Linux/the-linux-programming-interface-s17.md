@@ -11,7 +11,8 @@ categories: ["Linux系统编程手册阅读"]
 - 目录在i-node信息中会被标注成"目录"
 - 目录是一个包含文件名和i-node号的表。
 
-![目录和i-node之间的关系](/img/the-linux-programming-interface-s17/relationship_of_dir_inode.png)
+
+{{< figure src="/img/the-linux-programming-interface-s17/relationship_of_dir_inode.png"  class="center" title="目录和i-node之间的关系" width="500">}}
 
 由图可见以及文件系统章节关于i-node的内容可知，文件名并不存在于i-node中，而是保存在目录文件中。这样就允许不同的文件名映射到同一个i-node。使用`ln`创建硬链接就是如此。
 
@@ -60,7 +61,7 @@ Change: 2020-08-20 17:05:25.726910300 +0800
 
 先看张图：
 
-![软链接](/img/the-linux-programming-interface-s17/soft_link.png)
+{{< figure src="/img/the-linux-programming-interface-s17/soft_link.png"  class="center" title="软链接" width="600">}}
 
 符号链接是一种特殊的文件类型,它的数据是另外一个文件的**文件名**。软连接并不会包括在i-node中的Links数中，所以软连接指向的**文件名**删除后，软连接依然存在，只是在通过软连接访问时会提示`No such file or directory`。
 
@@ -68,7 +69,9 @@ Change: 2020-08-20 17:05:25.726910300 +0800
 
 **系统调用对符号链接的解释**  
 这个表可在使用时查询下，其中记录了系统调用是否会去对符号链接解引用。
-![系统调用是否解引用](/img/the-linux-programming-interface-s17/follow_link.png)
+
+{{< figure src="/img/the-linux-programming-interface-s17/follow_link.png"  class="center" title="系统调用是否解引用" width="800">}}
+
 
 ## 创建和移除硬链接
 
@@ -233,7 +236,8 @@ int fchdir(int fd);
 
 ## 针对目录文件描述的相关操作
 
-![使用文件描述符的系统调用](/img/the-linux-programming-interface-s17/use_fd.png)
+
+{{< figure src="/img/the-linux-programming-interface-s17/use_fd.png"  class="center" title="使用文件描述符的系统调用" width="800">}}
 
 这些系统调用参数中都有一个文件描述符，当打开相对路径时，会以传入的文件描述符为参照点，之所以要支持这些系统调用，原因有二：
 

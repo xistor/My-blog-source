@@ -108,5 +108,7 @@ setuid()分两种情况:
 2. 当一个特权进程执行setuid()并传入一个非0参数，real、effective、saved user ID都会设为参数值。一旦设置成功，进程将不能再把uid设置回0。
 
 其他的就不详细做笔记了，主要看下面这个总结表格：
-![总结](/img/the-linux-programming-interface-s8/summary_of_change_process_credentials.png)
+
+{{< figure src="/img/the-linux-programming-interface-s8/summary_of_change_process_credentials.png"  class="center" title="总结" width="700" >}}
+
 

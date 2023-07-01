@@ -75,7 +75,8 @@ if (fcntl(fd, F_SETFL, flags) == -1)
 - 文件的各种属性，包括文件大小以及不同类型操作相关的时间戳。
 
 
-![文件描述符、打开的文件句柄和i-node之间的关系](/img/the-linux-programming-interface-s4/relationship.png)
+
+{{< figure src="/img/the-linux-programming-interface-s4/relationship.png"  class="center" title="文件描述符、打开的文件句柄和i-node之间的关系" width="600" >}}
 
 上图展示了这三个数据结构之间的关系  
 - 在进程A中，文件描述符1和20都指向同一个打开的文件句柄（23），这可能是dup()、dup2()或fcntl()而形成的。dup会创建一个文件描述符的copy,dup2功能类似，区别在于可以指定新的文件描述符而不是使用最小未用编号（之前提过，文件描述符是个小整数）。 如前文所述文件句柄中保存了当前文件偏移量，所以文件描述符指向同一文件句柄将共享文件偏移量，无论这两个文件描述符属于同一进程还是不同进程。同样的文件打开标志也保存在打开的文件句柄中，所以情况一样。（cose-on-exec标志为进程和文件描述符号私有）

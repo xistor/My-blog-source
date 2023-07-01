@@ -14,14 +14,14 @@ categories: ["Linux"]
 暂时还是外置usb硬盘。
 
 
-```sh
+```shell
 sudo mkdir /media/disk1
 sudo chown x:x /media/disk1
 ```
 
 查看UUID
 
-```
+```shell
 $ sudo blkid 
 
 /dev/sda1: UUID="31c2f09d-e3e6-4e46-bb08-0370165c4f96" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="LVM" PARTUUID="522e1944-2b81-4574-90f5-9da62a622ddd"
@@ -39,12 +39,12 @@ UUID=31c2f09d-e3e6-4e46-bb08-0370165c4f96 /media/disk ext4 defaults,auto,users,r
 
 安装 vsftpd
 
-```
+```shell
 sudo apt install vsftpd
 ```
 
 修改ftp用户的home目录，也就是ftp登录的时候看到的目录。
-```sh
+```shell
 sudo usermod -d /media/disk3/ ftp
 ```
 
@@ -60,14 +60,14 @@ chroot_list_file=/etc/vsftpd.chroot_list
 创建 vsftpd.chroot_list, 添加ftp用户
 
 
-```sh
+```shell
 $ cat /etc/vsftpd.chroot_list
 ftp
 
 ```
 
 修改ftp密码
-```sh
+```shell
 sudo passwd ftp
 ```
 
@@ -90,7 +90,7 @@ auth	required	pam_nologin.so
 
 最后重启ftp服务
 
-```sh
+```shell
 sudo systemctl restart vsftpd.service
 ```
 
@@ -101,14 +101,14 @@ sudo systemctl restart vsftpd.service
 
 官网步骤 https://docs.docker.com/engine/install/ubuntu/
 
-```sh
+```shell
  sudo apt-get update
  sudo apt-get install ca-certificates curl gnupg
 ```
 
 添加 Docker  GPG key:
 
-```sh
+```shell
  sudo install -m 0755 -d /etc/apt/keyrings
 
  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -117,7 +117,7 @@ sudo systemctl restart vsftpd.service
 ```
 
 
-```sh
+```shell
 echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
@@ -126,7 +126,7 @@ echo \
 ```
 
 安装
-```
+```shell
 sudo apt-get update
 
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -135,7 +135,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 添加权限
 
-```
+```shell
 sudo groupadd docker
 sudo usermod -aG docker $USER
 
@@ -143,7 +143,7 @@ sudo usermod -aG docker $USER
 
 验证
 
-```
+```shell
 docker run hello-world
 ```
 
@@ -153,7 +153,7 @@ docker run hello-world
 
 ### 存储服务
 
-```
+```yml
 version: '3.5'
 
 services:
@@ -246,7 +246,7 @@ docker compose up -d
 
 修改nextcloud/config/config.php， 添加信任域名
 
-```
+```php
 'trusted_domains' => 
   array (
     0 => '192.168.123.201:8000',
@@ -260,7 +260,7 @@ docker compose up -d
 
 Heimdall导航页
 
-```
+```yml
 version: "3.5"
 services:
   heimdall:
@@ -285,7 +285,7 @@ services:
 jellyfin 媒体中心
 
 
-```
+```yml
 version: '3.5'
 
 services:
@@ -314,7 +314,7 @@ services:
 
 为知笔记
 
-```
+```yml
 version: '3.5'
 
 service:
@@ -341,7 +341,7 @@ service:
 定时更新证书， vps那边使用acme.sh申请的免费证书，会定时更新，这边定时同步。需要放到/root下所以使用sudo
 
 
-```sh
+```shell
 $ sudo mkdir /root/certs
 $ sudo crontab -e
 
@@ -350,7 +350,7 @@ $ sudo crontab -e
 
 update_key.sh的内容
 
-```
+```shell
 #!/bin/bash
 
 scp -i /home/x/.ssh/id_rsa root@123.123.123.123:/root/certs/xistor.top* /root/certs/
@@ -371,7 +371,7 @@ cd /opt/docker-comp/stroge/ &&  docker-compose restart
 
 开机启动frpc, 新建systemd 服务 /etc/systemd/system/frpc.service
 
-```
+```ini
 [Unit]
 Description=Frp Client Service
 After=network.target
@@ -389,7 +389,7 @@ WantedBy=multi-user.target
 ```
 使用frpc 内网穿透，并将http转成https, 下面是frpc.ini 的配置。
 
-```
+```ini
 [common]
 
 #frps 服务器地址、端口

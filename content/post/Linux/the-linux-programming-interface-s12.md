@@ -9,7 +9,9 @@ categories: ["Linux系统编程手册阅读"]
 
 首先看书中的一张图，就对文件I/O缓冲有个大概的了解了：
 
-![文件I/O](/img/the-linux-programming-interface-s12/summary_of_IO_buffering.png)
+
+{{< figure src="/img/the-linux-programming-interface-s12/summary_of_IO_buffering.png"  class="center" title="文件I/O" width="600" >}}
+
 
 由图所示I/O缓冲分两个层次
 - 用户空间缓冲区，stdio的输入输出函数内部所使用的缓冲，也就是图中的上半部分user memory部分，在执行标准库函数之后的某一刻，会调用fflush()后刷新缓冲区，此时才会调用系统调用wirte()等写入内核缓冲区。这部分缓冲的作用是可以减少系统调用的次数。

@@ -63,7 +63,10 @@ system()实现的时候需要考虑对信号的正确处理，首先是SIGCHLD,�
 只有父进程才需要阻塞SIGCHLD，同时还需要忽略SIGINT和SIGQUIT。  
 下图所有进程构成前端进程组的一部分，在输入中断或退出符时，会将相应信号发送给所有3个进程，shell在等待子进程期间会忽略SIGINT和SIGQUIT信号，默认情况下会杀死调用程序与sleep进程。
 
-![执行system("sleep 20")期间的进程情况](/img/the-linux-programming-interface-s21/overview.png)
+{{< figure src="/img/the-linux-programming-interface-s21/overview.png" title="执行system(\"sleep 20\")期间的进程情况" class="center"  width="500">}}
+
+
+
 对于哪个进程应该收到SIGINT和SIGQUIT，SUSv3规定：  
 - 调用进程在执行命令期间应忽略SIGINT和SIGQUIT信号
 - 子进程将对上述两信号的处置重置为默认值，而对其他信号的处置则保持不变。

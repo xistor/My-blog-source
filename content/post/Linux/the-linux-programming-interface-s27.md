@@ -49,7 +49,10 @@ ldconfig 不会自动设置linker name,原因是：虽然一般来说会希望�
 
 如果同一个全局符号（函数或变量），在可执行文件那和共享库中多个位置重复定义，或者在多个共享库中重复定义，如何解决符号引用？
 书中举了如图的栗子，最终主函数中调到了可执行文件中的xyz()。
-![解析符号引用](/img/the-linux-programming-interface-s27/resolve_symbol_reference.png)
+
+{{< figure src="/img/the-linux-programming-interface-s27/resolve_symbol_reference.png" title="解析符号引用" class="center"  >}}
+
+
 
 - 在主程序中定义的全局符号会override在共享库中的定义
 - 在多个共享库中重复定义，将会引用至第一个扫描到的库  

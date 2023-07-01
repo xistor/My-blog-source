@@ -31,22 +31,28 @@ malloc的实现很简单，它会先扫描之前由free()所释放的空闲内�
 
 malloc()在分配内存时会额外分配几个字节来记录这块内存大小，该整数位于内存块的起始处。 
 
-![malloc返回的地址](/img/the-linux-programming-interface-s6/mem_block_returned_by_malloc.png)  
+{{< figure src="/img/the-linux-programming-interface-s6/mem_block_returned_by_malloc.png"  class="center" title="malloc返回的地址" width="600" >}}
+
 
 当内存块置于空闲内存列表时，free()会使用内存块本身的空间来存放链表指针，将自身添加到列表中
-![空闲列表中的内存块](/img/the-linux-programming-interface-s6/a_block_on_the_free_list.png)
+
+{{< figure src="/img/the-linux-programming-interface-s6/a_block_on_the_free_list.png"  class="center" title="空闲列表中的内存块" width="600" >}}
 
 
 随着对内存的不断释放和重新分配，空闲列表中的空闲内存会和已分配的内存混杂在一起，如下图:
-![包含有已分配内存和空闲内存列表的堆](/img/the-linux-programming-interface-s6/heap_containing_allocated_blocks_and_a_free_kist.png)
 
+{{< figure src="/img/the-linux-programming-interface-s6/heap_containing_allocated_blocks_and_a_free_kist.png"  class="center" title="包含有已分配内存和空闲内存列表的堆" width="600" >}}
 
 书中的图展示的空闲列表为显式空闲链表，除此之外还有几种实现：
 - 隐式空闲链表：如下图，一个块由一个字的头部，有效载荷，以及可能的一些额外的填充，之所以称其为隐式空闲链表，是因为空闲块是通过头部中的大小字段隐含的链接着的。
-![隐式空闲列表](/img/the-linux-programming-interface-s6/a_block_of_Implicit_free_list.png)
+
+{{< figure src="/img/the-linux-programming-interface-s6/a_block_of_Implicit_free_list.png"  class="center" title="隐式空闲列表" width="500" >}}
+
 在隐式空闲链表合并空闲块时，释放当前块后，想要合并前一个空闲块，会遇到问题，因为按照上图的结构，我们无法直接知道前一个块的大小，也就无法在常数时间内完成合并，唯一的选择是遍历整个链表。  
 使用下图结构可以解决这个问题，如图，每个块的结尾添加了一个脚部，脚部就是头部的一个副本。每个块的脚部会与下一个块的头部相邻，所以下一个块可以很容易的访问到前一个块的脚部，以知道其前一个块的大小以及是否空闲。
-![带边界标记的堆块的格式](/img/the-linux-programming-interface-s6/a_block_with_footer.png)
+
+{{< figure src="/img/the-linux-programming-interface-s6/a_block_with_footer.png"  class="center" title="带边界标记的堆块的格式" width="300" >}}
+
 - 分离的空闲列表：维护多个空闲链表，其中每个链表中的块有大致的相等的大小，不同的分离存储的方法的主要区别就是如何定义大小类似的等价类（大小类），何时进行合并，何时向操作系统请求额外的堆内存，是否允许分割等。主要有：
     * 简单分离存储  
     每个大小类的空闲链表包含大小相等的块，每个块的大小就是这个大小类中最大元素的大小。比如某个大小类定义为{17～32}，那么这个类的空闲链表全由大小为32的块组成。此方法不分割、不合并。

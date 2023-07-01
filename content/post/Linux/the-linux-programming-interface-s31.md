@@ -8,7 +8,7 @@ categories: ["Linux系统编程手册阅读"]
 信号量和其他sys v IPC不同，它不是用来传输数据的，它是用来进程间同步的。  
 信号量是一个由内核维护的整数，其值被限制为大于等于0。下图是两个进程使用信号量同步的过程：
 
-![使用信号量同步](/img/the-linux-programming-interface-s31/semaphore_sync.png)
+{{< figure src="/img/the-linux-programming-interface-s31/semaphore_sync.png"  title="使用信号量同步" class="center"  width="500">}}
 
 ## 使用步骤
 - 使用`semget()`创建和打开一个信号量

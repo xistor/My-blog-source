@@ -15,15 +15,16 @@ Socket系统调用：
 
 ## 流式socket
 
-![overview](/img/the-linux-programming-interface-s35/overview_socket.png)
+
+{{< figure src="/img/the-linux-programming-interface-s35/overview_socket.png"  class="center" title="流式socket" width="500">}}
 
 类似我们生活中的电话通信。
 一个典型的服务应用会创建一个监听socket, 绑定到一个地址上，然后通过accept socket的链接来处理客户端的请求。
 
 ## 数据报socket
 
-类似我们生活中的信件通信。
-![overview](/img/the-linux-programming-interface-s35/datagram_socket.png)
+类似我们生活中的信件通信。  
+{{< figure src="/img/the-linux-programming-interface-s35/datagram_socket.png"  class="center" title="数据报socket"   width="500">}}
 
 数据报socket虽然是无连接的，但是也可以使用connect(),连接后的socket可以使用write()或者send()直接发送到对端。只有会收到远端连接的那个socket发送的数据。connect()的作用是非对称的，只会影响调用connect()的socket,不会影响远端的socket。
 

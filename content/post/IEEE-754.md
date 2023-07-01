@@ -24,7 +24,7 @@ $$V = (-1)^s * M * 2^E$$
 
 在实际的32bit float的存储格式为下图：  
 
-![ 32-bit floating point](/img/IEEE-754/float-format.png)
+{{< figure src="/img/IEEE-754/float-format.png"  class="center" title="32-bit floating point">}}
 
 肉眼可见的分三部分，对应IEEE浮点数中的s 、E 、M。  
 - 第一部分：sign 1bit 符号位，0表示正数，1表示负数。
@@ -52,7 +52,7 @@ $$1.1110110111001100110011001100110011001100110011001101 * 2^6 $$
 
 找一个[IEEE 754在线转换网站](https://www.h-schmidt.net/FloatConverter/IEEE754.html),输入123.45，得到的值和计算的一致。
 
-![123.45](/img/IEEE-754/IEEE-754-Converter.png)
+{{< figure src="/img/IEEE-754/IEEE-754-Converter.png"  class="center" title="123.45">}}
 
 在IEEE浮点数标准中，以上属于“规格化数”情况，如果按这种方式计算M最小取1，E最小取-127，则我们最小能表示的最接近0的浮点数为$\pm2^{-127}$。  
 所以IEEE规定当一个数字的绝对值小于$2^{-126}$时 使用“非规格化数”表示：

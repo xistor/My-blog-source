@@ -11,7 +11,9 @@ System V IPC 代表了三种进程间通信机制，他们在同一时期开发�
 - 信号量(Semaphores)：用于进程间同步，一个信号量是一个由内核维护的整数值，对任何有合适的权限的进程都可见。
 - 共享内存(Shared memory): 多个进程可以访问内存的同一区域。
 
-![System V IPC API](/img/the-linux-programming-interface-s29/system_v_ipc_api.png)
+{{< figure src="/img/the-linux-programming-interface-s29/system_v_ipc_api.png" title="System V IPC API" class="center"  >}}
+
+
 上面是三种IPC的API,每种IPC都有对应的get系统调用，和打开文件的`open()`类似，返回一个IPC对象的标识符。IPC标识符和文件描述符的不同在于，IPC标识符是IPC对象的属性，对整个系统可见，所有的进程都使用同样的标识符访问IPC对象。  
 
 ## 创建IPC
