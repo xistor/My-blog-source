@@ -97,8 +97,9 @@ sudo systemctl restart vsftpd.service
 使用用户名：ftp和前面设置的密码登录。 
 
 
-## 安装Docker
+## Docker 服务
 
+### 安装 Docker
 官网步骤 https://docs.docker.com/engine/install/ubuntu/
 
 ```shell
@@ -147,11 +148,10 @@ sudo usermod -aG docker $USER
 docker run hello-world
 ```
 
-## 配置服务
-
+  
 使用docker-compose同时启动多个服务， 按照功能分成了几块，每种服务对应一个 docker-compose.yml
 
-### 存储服务
+### 存储
 
 ```yml
 version: '3.5'
@@ -296,6 +296,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Shanghai
+      - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel
       # - JELLYFIN_PublishedServerUrl=192.168.0.5 #optional
     volumes:
       - ./jellyfin/library:/config
@@ -306,9 +307,27 @@ services:
       - 8920:8920 #optional
       - 7359:7359/udp #optional
       - 1900:1900/udp #optional
+    devices:
+      - dev/dri:/dev/dri
+
     restart: unless-stopped
 
 ```
+
+在TV上观看的话需要安装kodi以及jellyfin插件， 下载 [jellyfin repository installer](https://kodi.jellyfin.org/repository.jellyfin.kodi.zip)， 在kodi中安装此插件，这个插件只是仓库，并不是jellfin插件，然后再选择`从库中安装` -> `视频插件` 安装jellfin插件，添加服务器后就可以观看了。 具体的流程参考[这个](https://post.smzdm.com/p/a99vlpmp/)。
+
+
+**硬件加速**
+
+由于使用的Intel 的CPU 和核显， 前面的`DOCKER_MODS`使用了`jellyfin-opencl-intel`  
+
+jellyfin也需要如下配置下： `控制台` -> `播放` -> `转码`  `硬件加速选择` `Intel QuickSync(QSV)`
+
+{{< figure src="/img/home-server/jellyfin-hwacc.png"  class="center" title="jellyfin 硬件加速">}}
+
+勾选所有格式，以及 `启用 VPP 色调映射` 和 `启用色调映射` 。  
+
+这样在客户端播放不支持的视频格式时，jellyfin转码可以使用硬件加速，降低cpu使用率。
 
 ### 笔记
 
@@ -334,6 +353,75 @@ service:
 
 
 ```
+
+
+### 智能家居
+
+HomeAssissant
+
+```yml
+version: "3.5"
+
+services:
+  homeassistant:
+    image: lscr.io/linuxserver/homeassistant:latest
+    container_name: homeassistant
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./homeassistant/config:/config
+    restart: unless-stopped
+
+```
+
+安装hacs
+
+```shell
+$ mkdir www
+$ mkdir custom_components
+$ mkdir custom_components/hacs
+$ cd custom_components/hacs/
+$ wget https://github.com/hacs/integration/releases/download/1.32.1/hacs.zip
+$ unzip
+$ 
+```
+
+重启homaassistant
+
+进入集成搜索hacs, 这时候就能搜到了，按照提示继续完成安装。
+
+
+
+### 电子书
+
+
+```yml
+version: "3.5"
+
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - ./calibre-web/data:/config
+      - ./calibre-web/library:/books
+    ports:
+      - 8020:8083
+    restart: unless-stopped
+
+```
+默认用户名和密码 Username: admin Password: admin123。  
+配置过程参考[这个](https://blog.mokeedev.com/2022/06/1113/)。
+
 
 ## 定时任务
 
