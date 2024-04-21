@@ -200,10 +200,10 @@ copyright = ""            # default: author.name ↓        # 默认为下面配
   [privacy.youtube]
     privacyEnhanced = true
 
-[params.umami]
-  enabled = true
-  id = "d87b7354-5f96-478f-9419-8da90d278e53" # umami 统计 id
-  js = "https://umami-8prjzf9mb-xistors-projects.vercel.app/xistor" # umami 的 JS 地址
+#[params.umami]
+#  enabled = true
+#  id = "d87b7354-5f96-478f-9419-8da90d278e53" # umami 统计 id
+#  js = "https://umami-8prjzf9mb-xistors-projects.vercel.app/xistor" # umami 的 JS 地址
 
 # 将下面这段配置取消注释可以使 hugo 生成 .md 文件
 # Uncomment these options to make hugo output .md files.
