@@ -28,7 +28,7 @@ jobs:
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} 
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
           external_repository: xistor/xistor.github.io
           publish_branch: master
           publish_dir: ./public
