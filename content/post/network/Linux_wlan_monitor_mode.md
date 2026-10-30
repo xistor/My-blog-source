@@ -52,7 +52,7 @@ Wiphy phy0
 
 Supported interface mode 里有monitor就是支持
 
-1. 查看网卡名称
+2. 查看网卡名称
    ```shellscript
    ip link show
    或者
@@ -61,16 +61,16 @@ Supported interface mode 里有monitor就是支持
 
 一般wl开头(`wlan0`, `wlp2s0`, `wlo1`)就是无线网卡。以下的wlo1需要替换成实际的网卡名称。
 
-1. 关闭无线网卡
+3. 关闭无线网卡
    ```shellscript
    sudo ifconfig wlo1 down
    ```
-2. 创建监听接口
+4. 创建监听接口
    ```shellscript
    sudo iw wlo1 interface add mon0 type monitor
    ```
 
-3. 启动监听接口
+5. 启动监听接口
    ```shellscript
    sudo ifconfig mon0 up
    ```
@@ -79,43 +79,45 @@ Supported interface mode 里有monitor就是支持
    sudo rfkill unblock wifi
    ```
 
-4. 设置监听频道
+6. 设置监听频道
    ```shellscript
    sudo iw dev mon0 set channel 6
    ```
    具体使用的频道可以到路由器管理页面查看。
-5. 查看网卡监听状态
+7. 查看网卡监听状态
    ```shellscript
    iw dev
    ```
-6. 抓包
+8. 抓包
 
-```shellscript
-   sudo tcpdump -i mon0 -nn -s0 -w capturefile.pcap
-```
+	```shellscript
+	sudo tcpdump -i mon0 -nn -s0 -w capturefile.pcap
+	```
 
-解密需要设备连接wifi时的EAPOL握手数据包，所以抓包过程中须要把设备重连下wifi。
-
-
-
-1. wireshark 设置
-
-菜单栏 Edit -> Preferences
-下拉Protocols里找到IEEE 802.11, 勾选 Enable Decryption
+	解密需要设备连接wifi时的EAPOL握手数据包，所以抓包过程中须要把设备重连下wifi。
 
 
-{{< figure src="/img/Linux_wlan_monitor_mode/enable_decryption.png"  class="center" title="Enable Decryption">}}
+
+9. wireshark 设置
+
+	菜单栏 Edit -> Preferences  
+	下拉Protocols里找到IEEE 802.11, 勾选 Enable Decryption
 
 
-点击Decryption keys 后的Edit。
-
-在弹出对话框里添加一条新key。
-
-最简单的 wpa-pwd，知道wiifi ssid和密码就可以，格式：
-
-PASSWORD:SSID
-
-保存后，打开刚才抓的数据包应该可以正常解码了。
+	{{< figure src="/img/Linux_wlan_monitor_mode/enable_decryption.png"  class="center" title="Enable Decryption">}}
 
 
-{{< figure src="/img/Linux_wlan_monitor_mode/wireshark_cap.png"  class="center" title="wireshark">}}
+	点击Decryption keys 后的Edit。
+
+	在弹出对话框里添加一条新key。
+
+	最简单的 wpa-pwd，知道wiifi ssid和密码就可以，格式：
+
+	```shellscript
+	PASSWORD:SSID
+	```
+
+	保存后，打开刚才抓的数据包应该可以正常解码了。
+
+
+	{{< figure src="/img/Linux_wlan_monitor_mode/wireshark_cap.png"  class="center" title="wireshark">}}
