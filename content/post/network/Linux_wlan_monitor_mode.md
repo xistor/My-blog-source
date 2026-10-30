@@ -104,7 +104,7 @@ Supported interface mode 里有monitor就是支持
 下拉Protocols里找到IEEE 802.11, 勾选 Enable Decryption
 
 
-{{< figure src="img/Linux_wlan_monitor_mode/enable_decryption.png"  class="center" title="Enable Decryption">}}
+{{< figure src="/img/Linux_wlan_monitor_mode/enable_decryption.png"  class="center" title="Enable Decryption">}}
 
 
 点击Decryption keys 后的Edit。
@@ -118,4 +118,4 @@ PASSWORD:SSID
 保存后，打开刚才抓的数据包应该可以正常解码了。
 
 
-{{< figure src="img/Linux_wlan_monitor_mode/wireshark_cap.png"  class="center" title="wireshark">}}
+{{< figure src="/img/Linux_wlan_monitor_mode/wireshark_cap.png"  class="center" title="wireshark">}}
